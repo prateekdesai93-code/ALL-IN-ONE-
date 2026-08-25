@@ -8,8 +8,12 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwMDAwMDAiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDMiIGZvbnQtZmFtaWx5PSItYXBwbGUtc3lzdGVtLFNlZ29lIFVJLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlM8L3RleHQ+Cjwvc3ZnPgo=" type="image/svg+xml" />
 <style>
 /* =========================================================
-   Property Management System — Design System
-   Pure black & white. No build step, no frameworks, no blue.
+   Manufacturing & Invoicing Manager — Design System
+   A dark or light neutral base (pick in Settings → Theme) with one
+   confident indigo brand accent, plus a distinct color per sidebar
+   section — used on nav icons, the current-page indicator, and stat
+   card icons — so the app reads as colorful and it's always obvious
+   at a glance which part of it you're in. No build step, no frameworks.
    ========================================================= */
 
 :root {
@@ -23,10 +27,10 @@
   --text-secondary: #a8a8a8;
   --text-tertiary: #707070;
 
-  --accent: #ffffff;
-  --accent-soft: rgba(255, 255, 255, 0.1);
-  --accent-text: #ffffff;
-  --accent-contrast: #000000;
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.18);
+  --accent-text: #a5b4fc;
+  --accent-contrast: #ffffff;
 
   --success: #4ade80;
   --success-soft: rgba(74, 222, 128, 0.14);
@@ -35,18 +39,36 @@
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.14);
 
+  /* One color per sidebar destination — always used on that section's
+     nav icon, and reused on the page-title indicator and any stat/metric
+     card that reports on that section, so the same color always means
+     the same part of the app. */
+  --sec-dashboard: #60a5fa; --sec-dashboard-soft: rgba(96, 165, 250, 0.18);
+  --sec-products: #a78bfa; --sec-products-soft: rgba(167, 139, 250, 0.18);
+  --sec-bom: #a3e635; --sec-bom-soft: rgba(163, 230, 53, 0.18);
+  --sec-vendors: #fb923c; --sec-vendors-soft: rgba(251, 146, 60, 0.18);
+  --sec-purchase-orders: #2dd4bf; --sec-purchase-orders-soft: rgba(45, 212, 191, 0.18);
+  --sec-production: #e879f9; --sec-production-soft: rgba(232, 121, 249, 0.18);
+  --sec-customers: #22d3ee; --sec-customers-soft: rgba(34, 211, 238, 0.18);
+  --sec-invoices: #818cf8; --sec-invoices-soft: rgba(129, 140, 248, 0.18);
+  --sec-credit-notes: #f472b6; --sec-credit-notes-soft: rgba(244, 114, 182, 0.18);
+  --sec-payments: #34d399; --sec-payments-soft: rgba(52, 211, 153, 0.18);
+  --sec-reports: #fbbf24; --sec-reports-soft: rgba(251, 191, 36, 0.18);
+  --sec-settings: #94a3b8; --sec-settings-soft: rgba(148, 163, 184, 0.18);
+
   --radius-lg: 16px;
   --radius: 12px;
   --radius-sm: 8px;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.6);
   --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.85);
-  --accent-glow: rgba(255, 255, 255, 0.28);
+  --accent-glow: rgba(99, 102, 241, 0.4);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
   --sidebar-w: 248px;
 }
 
-/* Light theme — still pure black & white, just inverted. Toggle in
-   Settings → Theme sets data-theme="light" on <html>. */
+/* Light theme — same indigo accent and section colors, deepened for
+   contrast on a white background. Toggle in Settings → Theme sets
+   data-theme="light" on <html>. */
 html[data-theme="light"] {
   --bg: #ffffff;
   --surface: #ffffff;
@@ -58,9 +80,9 @@ html[data-theme="light"] {
   --text-secondary: #4d4d4d;
   --text-tertiary: #767676;
 
-  --accent: #000000;
-  --accent-soft: rgba(0, 0, 0, 0.08);
-  --accent-text: #000000;
+  --accent: #4f46e5;
+  --accent-soft: rgba(79, 70, 229, 0.12);
+  --accent-text: #4338ca;
   --accent-contrast: #ffffff;
 
   --success: #15803d;
@@ -70,9 +92,22 @@ html[data-theme="light"] {
   --danger: #b91c1c;
   --danger-soft: rgba(185, 28, 28, 0.12);
 
+  --sec-dashboard: #2563eb; --sec-dashboard-soft: rgba(37, 99, 235, 0.12);
+  --sec-products: #7c3aed; --sec-products-soft: rgba(124, 58, 237, 0.12);
+  --sec-bom: #4d7c0f; --sec-bom-soft: rgba(77, 124, 15, 0.12);
+  --sec-vendors: #ea580c; --sec-vendors-soft: rgba(234, 88, 12, 0.12);
+  --sec-purchase-orders: #0d9488; --sec-purchase-orders-soft: rgba(13, 148, 136, 0.12);
+  --sec-production: #c026d3; --sec-production-soft: rgba(192, 38, 211, 0.12);
+  --sec-customers: #0891b2; --sec-customers-soft: rgba(8, 145, 178, 0.12);
+  --sec-invoices: #4f46e5; --sec-invoices-soft: rgba(79, 70, 229, 0.12);
+  --sec-credit-notes: #db2777; --sec-credit-notes-soft: rgba(219, 39, 119, 0.12);
+  --sec-payments: #059669; --sec-payments-soft: rgba(5, 150, 105, 0.12);
+  --sec-reports: #b45309; --sec-reports-soft: rgba(180, 83, 9, 0.12);
+  --sec-settings: #475569; --sec-settings-soft: rgba(71, 85, 105, 0.12);
+
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.2);
-  --accent-glow: rgba(0, 0, 0, 0.18);
+  --accent-glow: rgba(79, 70, 229, 0.25);
 }
 
 * { box-sizing: border-box; }
@@ -121,9 +156,9 @@ img { max-width: 100%; display: block; }
 .brand-mark {
   width: 34px; height: 34px;
   border-radius: 10px;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--sec-products), var(--sec-purchase-orders));
   display: flex; align-items: center; justify-content: center;
-  color: var(--accent-contrast); font-weight: 700; font-size: 15px;
+  color: #ffffff; font-weight: 700; font-size: 15px;
   flex-shrink: 0;
   box-shadow: 0 4px 16px -4px var(--accent-glow);
 }
@@ -133,18 +168,40 @@ img { max-width: 100%; display: block; }
 
 .nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .nav-link {
-  display: flex; align-items: center; gap: 11px;
-  padding: 9px 12px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px 7px 9px;
   border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+/* Every nav icon (and its mobile-topbar twin) sits in its own softly-
+   tinted color chip (--nc / --nc-soft are set inline per row in ui.js,
+   referencing that section's --sec-* variables — see renderShell) so the
+   sidebar reads as colorful even before anything is selected. */
+.nav-icon-chip {
+  width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--nc-soft); color: var(--nc);
+  flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.nav-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.9; }
+.nav-icon-chip svg { width: 15px; height: 15px; }
 .nav-link:hover { background: var(--surface-hover); color: var(--text); }
-.nav-link.active { background: var(--accent-soft); color: var(--accent-text); }
+/* The active tab gets FOUR reinforcing signals at once — a solid-filled
+   icon chip, a colored left bar, a tinted row background, and bold
+   text — all in that section's own color, so which page you're on is
+   obvious at a glance without having to read the label. */
+.nav-link.active {
+  background: var(--nc-soft);
+  color: var(--nc);
+  border-left-color: var(--nc);
+  font-weight: 700;
+}
+.nav-link.active .nav-icon-chip { background: var(--nc); color: #ffffff; }
 
 .sidebar-footer {
   font-size: 10.5px;
@@ -183,7 +240,7 @@ img { max-width: 100%; display: block; }
 .mobile-topbar {
   display: none;
   position: sticky; top: 0;
-  align-items: center; gap: 12px;
+  align-items: center; gap: 10px;
   padding: 12px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -197,7 +254,28 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
+/* The mobile topbar's whole reason to exist: name the page you're
+   actually on. The sidebar (with its own active-tab highlight) is
+   hidden behind the hamburger below ~768px, so this is the only
+   always-visible answer to "where am I" on a phone. Colored to match
+   that page's own nav icon for the same at-a-glance recognition. */
+.mobile-topbar-current {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+}
+.mobile-topbar-current .nav-icon-chip { background: var(--nc); color: #ffffff; }
+.mobile-topbar-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Same colored icon chip, reused beside the desktop page title so the
+   current section's color shows up there too, not just in the sidebar. */
+.page-icon-chip {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--nc); color: #ffffff;
+  flex-shrink: 0;
+}
+.page-icon-chip svg { width: 16px; height: 16px; }
 
 .main {
   flex: 1;
@@ -214,6 +292,7 @@ img { max-width: 100%; display: block; }
   gap: 16px;
   padding: 22px 32px 0;
 }
+.topbar-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.015em; }
 .topbar .sub { margin-top: 3px; font-size: 13px; color: var(--text-secondary); }
 .topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
@@ -290,13 +369,15 @@ svg { width: 16px; height: 16px; flex-shrink: 0; }
   padding: 18px 18px 16px;
   display: flex; flex-direction: column; gap: 10px;
 }
+/* --nc / --nc-soft are set inline per card (see dashboard.js / reports.js)
+   to that card's own section or semantic color variable; var()'s second
+   argument is the fallback when a card doesn't set one, so an uncolored
+   card just renders neutral instead of needing a separate CSS class. */
 .stat-card .icon-wrap {
   width: 34px; height: 34px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--surface-2); color: var(--text-secondary);
+  background: var(--nc-soft, var(--surface-2)); color: var(--nc, var(--text-secondary));
 }
-.stat-card.tone-accent .icon-wrap { background: var(--accent-soft); color: var(--accent-text); }
-.stat-card.tone-danger .icon-wrap { background: var(--danger-soft); color: var(--danger); }
 .stat-card .value { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
 .stat-card .label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
 .stat-card .sub { font-size: 11px; color: var(--text-tertiary); }
@@ -490,8 +571,8 @@ html:not(.unlocked) .mobile-topbar {
 .lock-mark {
   width: 44px; height: 44px;
   border-radius: 12px;
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: linear-gradient(135deg, var(--sec-products), var(--sec-purchase-orders));
+  color: #ffffff;
   display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 18px;
   margin: 0 auto 4px;
@@ -701,10 +782,30 @@ table.table a:hover { text-decoration: underline; }
 .kanban-card .kc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .kanban-empty { color: var(--text-tertiary); font-size: 12px; text-align: center; padding: 18px 8px; }
 
-/* ---------- Item type toggle (Products page: Materials / Finished Goods) ---------- */
+/* ---------- Item type toggle (Products page: Materials / Finished Goods / Buy & Sell) ---------- */
 .type-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 999px; }
-.type-badge.material { background: var(--surface-hover); color: var(--text-secondary); }
-.type-badge.finished { background: var(--accent-soft); color: var(--accent-text); }
+.type-badge.material { background: var(--sec-vendors-soft); color: var(--sec-vendors); }
+.type-badge.finished { background: var(--sec-products-soft); color: var(--sec-products); }
+.type-badge.trade { background: var(--sec-payments-soft); color: var(--sec-payments); }
+
+/* ---------- Profit-by-product margin bar (Dashboard) ---------- */
+.margin-track { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 6px 0; max-width: 320px; }
+.margin-fill { height: 100%; border-radius: 999px; transition: width 0.2s ease; }
+
+/* ---------- Bill of Materials accordion (bom.html) ---------- */
+.bom-accordion { display: flex; flex-direction: column; gap: 12px; }
+.bom-card-header {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 20px; background: none; border: none; cursor: pointer;
+  text-align: left; font: inherit; color: inherit; border-radius: var(--radius-lg);
+}
+.bom-card-header:hover { background: var(--surface-hover); }
+.bom-card.open .bom-card-header { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.bom-card-chevron { width: 16px; height: 16px; color: var(--text-tertiary); flex-shrink: 0; transition: transform 0.15s ease; }
+.bom-card.open .bom-card-chevron { transform: rotate(90deg); color: var(--accent); }
+.bom-card-body { padding: 0 20px 20px; border-top: 1px solid var(--border); }
+.bom-card-body #bomEditorContainer { padding-top: 16px; }
+.bom-card-footer { display: flex; gap: 10px; margin-top: 14px; }
 
 </style>
 </head>
@@ -839,6 +940,8 @@ table.table a:hover { text-decoration: underline; }
     paymentInstructions: "Payment due within the terms stated above. Thank you for your business.",
     invoicePrefix: "INV",
     nextInvoiceSeq: 1001,
+    poPrefix: "PO",
+    nextPoSeq: 3001,
     defaultReorderThreshold: 10,
     // "simple" = one Produce button, atomic, no separate workflow.
     // "advanced" = Work Orders with a Planned/In Progress/Done board.
@@ -858,6 +961,8 @@ table.table a:hover { text-decoration: underline; }
       payments: [],
       creditNotes: [],
       movements: [],
+      vendors: [],
+      purchaseOrders: [],
       settings: Object.assign({}, DEFAULT_SETTINGS),
     };
   }
@@ -903,6 +1008,8 @@ table.table a:hover { text-decoration: underline; }
       payments: parsed.payments || [],
       creditNotes: parsed.creditNotes || [],
       movements: parsed.movements || [],
+      vendors: parsed.vendors || [],
+      purchaseOrders: parsed.purchaseOrders || [],
     });
   }
 
@@ -985,8 +1092,21 @@ table.table a:hover { text-decoration: underline; }
   function finishedItems() {
     return data.items.filter(function (x) { return x.type === "finished"; });
   }
+  // "trade" items are bought and resold as-is — no BOM, never produced —
+  // but they ARE sellable (like a finished good) and purchasable (like a
+  // raw material), so the two lists below decide what can appear on an
+  // invoice line and on a purchase order line respectively.
+  function tradeItems() {
+    return data.items.filter(function (x) { return x.type === "trade"; });
+  }
+  function sellableItems() {
+    return data.items.filter(function (x) { return x.type === "finished" || x.type === "trade"; });
+  }
+  function purchasableItems() {
+    return data.items.filter(function (x) { return x.type === "material" || x.type === "trade"; });
+  }
   function addItem(input) {
-    var rec = Object.assign({ active: true, bom: [] }, input, { id: uid(), createdAt: nowISO() });
+    var rec = Object.assign({ active: true, bom: [], vendorPrices: [] }, input, { id: uid(), createdAt: nowISO() });
     data.items.push(rec);
     persist();
     return rec;
@@ -1314,6 +1434,166 @@ table.table a:hover { text-decoration: underline; }
     return match ? match.price : null;
   }
 
+  // ---------- vendors ----------
+  // Who materials get bought from. A material can carry a sparse list of
+  // {vendorId, price} on its own vendorPrices array — the mirror image of
+  // a customer's priceOverrides — so the same raw material can genuinely
+  // cost different amounts from different suppliers; the purchase order
+  // editor uses vendorPriceForItem() the moment a material is picked on a
+  // line for a given vendor, falling back to the item's normal costPrice.
+  function addVendor(input) {
+    var rec = Object.assign({}, input, { id: uid(), createdAt: nowISO() });
+    data.vendors.unshift(rec);
+    persist();
+    return rec;
+  }
+  function updateVendor(id, patch) {
+    var v = data.vendors.find(function (x) { return x.id === id; });
+    if (!v) return;
+    Object.assign(v, patch);
+    persist();
+  }
+  function deleteVendor(id) {
+    data.vendors = data.vendors.filter(function (x) { return x.id !== id; });
+    // Strip the deleted vendor out of every item's vendor-specific price
+    // list, same cleanup policy as deleteItem stripping a removed material
+    // out of every finished item's BOM — a stale vendorId should never
+    // silently linger in a picker or price lookup. Past purchase orders
+    // keep their historical vendorId and show "Deleted vendor" wherever
+    // it's looked up, same as a deleted customer on an old invoice.
+    data.items = data.items.map(function (x) {
+      if (!x.vendorPrices || !x.vendorPrices.length) return x;
+      var filtered = x.vendorPrices.filter(function (vp) { return vp.vendorId !== id; });
+      return filtered.length === x.vendorPrices.length ? x : Object.assign({}, x, { vendorPrices: filtered });
+    });
+    persist();
+  }
+  function vendorPriceForItem(vendorId, itemId) {
+    var it = findItem(itemId);
+    if (!it) return null;
+    var match = (it.vendorPrices || []).find(function (o) { return o.vendorId === vendorId; });
+    return match ? match.price : null;
+  }
+
+  // ---------- purchase orders ----------
+  // Mirrors the invoice Draft -> Sent lifecycle, but the stock-touching
+  // moment is different: sending a purchase order never touches stock by
+  // itself (nothing has physically arrived yet) — only receivePurchaseOrder
+  // does, and it can be called more than once as a shipment arrives in
+  // parts, going draft -> sent -> partial -> received. Cancelling is safe
+  // at any point before anything has been received, since no stock has
+  // moved yet; once any line has a receivedQty, the order can no longer be
+  // deleted outright (it's real inventory history) but can still be
+  // cancelled to close out the remainder.
+  function nextPoNumber() {
+    var s = data.settings;
+    return s.poPrefix + "-" + s.nextPoSeq;
+  }
+  function computePoTotal(po) {
+    return round2((po.items || []).reduce(function (sum, l) { return sum + (Number(l.quantity) || 0) * (Number(l.unitCost) || 0); }, 0));
+  }
+  function findPurchaseOrder(id) {
+    return data.purchaseOrders.find(function (x) { return x.id === id; });
+  }
+  function addPurchaseOrder(input) {
+    var now = nowISO();
+    var s = data.settings;
+    var number = input.number || (s.poPrefix + "-" + s.nextPoSeq);
+    var bumpSeq = !input.number;
+    var wantsSend = input.status === "sent";
+    var rec = Object.assign({}, input, {
+      number: number,
+      id: uid(),
+      status: wantsSend ? "sent" : "draft",
+      items: (input.items || []).map(function (l) { return Object.assign({ receivedQty: 0 }, l); }),
+      createdAt: now,
+      updatedAt: now,
+      sentAt: wantsSend ? now : null,
+      receivedAt: null,
+    });
+    data.purchaseOrders.unshift(rec);
+    if (bumpSeq) data.settings.nextPoSeq = s.nextPoSeq + 1;
+    persist();
+    return { ok: true, purchaseOrder: rec };
+  }
+  function updateDraftPurchaseOrder(id, patch) {
+    var po = findPurchaseOrder(id);
+    if (!po) return { ok: false, error: "Purchase order not found." };
+    if (po.status !== "draft") return { ok: false, error: "Only draft purchase orders can be edited." };
+    var payload = Object.assign({}, patch);
+    if (payload.items) payload.items = payload.items.map(function (l) { return Object.assign({ receivedQty: 0 }, l); });
+    Object.assign(po, payload, { updatedAt: nowISO() });
+    persist();
+    return { ok: true, purchaseOrder: po };
+  }
+  function sendPurchaseOrder(id) {
+    var po = findPurchaseOrder(id);
+    if (!po) return { ok: false, error: "Purchase order not found." };
+    if (po.status !== "draft") return { ok: false, error: "Only a draft purchase order can be sent." };
+    po.status = "sent";
+    po.sentAt = nowISO();
+    po.updatedAt = nowISO();
+    persist();
+    return { ok: true, purchaseOrder: po };
+  }
+  function cancelPurchaseOrder(id) {
+    var po = findPurchaseOrder(id);
+    if (!po) return { ok: false, error: "Purchase order not found." };
+    if (po.status === "received") return { ok: false, error: "A fully received purchase order can't be cancelled." };
+    if (po.status === "cancelled") return { ok: false, error: "This purchase order is already cancelled." };
+    po.status = "cancelled";
+    po.updatedAt = nowISO();
+    persist();
+    return { ok: true, purchaseOrder: po };
+  }
+  function deletePurchaseOrder(id) {
+    var po = findPurchaseOrder(id);
+    if (!po) return { ok: false, error: "Purchase order not found." };
+    var anyReceived = (po.items || []).some(function (l) { return (l.receivedQty || 0) > 0; });
+    if (anyReceived) return { ok: false, error: "This purchase order already has received stock recorded against it — cancel it instead to keep that history." };
+    data.purchaseOrders = data.purchaseOrders.filter(function (x) { return x.id !== id; });
+    persist();
+    return { ok: true };
+  }
+  // The single stock-mutating step for purchasing — deliberately mirrors
+  // completeProductionOrder()'s discipline of one function, one place
+  // stock changes happen. `receipts` is [{lineId, qty}]; each qty is a
+  // delta (how much arrived just now), clamped so a line's total received
+  // can never exceed what was ordered on it. Every unit actually applied
+  // goes through restock() so it shows up in Stock Movements like any
+  // other stock increase, tagged with this PO's number.
+  function receivePurchaseOrder(id, receipts) {
+    var po = findPurchaseOrder(id);
+    if (!po) return { ok: false, error: "Purchase order not found." };
+    if (po.status !== "sent" && po.status !== "partial") return { ok: false, error: "Only a sent or partially received purchase order can receive stock." };
+    (receipts || []).forEach(function (r) {
+      var line = (po.items || []).find(function (l) { return l.id === r.lineId; });
+      if (!line || !line.materialId) return;
+      var already = line.receivedQty || 0;
+      var remaining = Math.max(0, (Number(line.quantity) || 0) - already);
+      var delta = Math.max(0, Math.min(Number(r.qty) || 0, remaining));
+      if (delta <= 0) return;
+      restock(line.materialId, delta, "Purchase Order " + po.number);
+      line.receivedQty = round2(already + delta);
+    });
+    var totalOrdered = (po.items || []).reduce(function (sum, l) { return sum + (Number(l.quantity) || 0); }, 0);
+    var totalReceived = (po.items || []).reduce(function (sum, l) { return sum + (Number(l.receivedQty) || 0); }, 0);
+    if (totalOrdered > 0 && totalReceived >= totalOrdered) {
+      po.status = "received";
+      po.receivedAt = nowISO();
+    } else if (totalReceived > 0) {
+      po.status = "partial";
+    }
+    po.updatedAt = nowISO();
+    persist();
+    return { ok: true, purchaseOrder: po };
+  }
+  function poReceivingProgress(po) {
+    var totalOrdered = round2((po.items || []).reduce(function (sum, l) { return sum + (Number(l.quantity) || 0); }, 0));
+    var totalReceived = round2((po.items || []).reduce(function (sum, l) { return sum + (Number(l.receivedQty) || 0); }, 0));
+    return { totalOrdered: totalOrdered, totalReceived: totalReceived, remaining: round2(Math.max(0, totalOrdered - totalReceived)) };
+  }
+
   // ---------- invoices ----------
   // Same Draft -> Sent -> Cancelled stock-safe lifecycle as Stock &
   // Invoicing Manager: a draft never touches stock and is fully
@@ -1599,6 +1879,9 @@ table.table a:hover { text-decoration: underline; }
     findItem: findItem,
     materialItems: materialItems,
     finishedItems: finishedItems,
+    tradeItems: tradeItems,
+    sellableItems: sellableItems,
+    purchasableItems: purchasableItems,
     addItem: addItem,
     updateItem: updateItem,
     deleteItem: deleteItem,
@@ -1627,6 +1910,22 @@ table.table a:hover { text-decoration: underline; }
     updateCustomer: updateCustomer,
     deleteCustomer: deleteCustomer,
     customerPriceForItem: customerPriceForItem,
+
+    addVendor: addVendor,
+    updateVendor: updateVendor,
+    deleteVendor: deleteVendor,
+    vendorPriceForItem: vendorPriceForItem,
+
+    nextPoNumber: nextPoNumber,
+    computePoTotal: computePoTotal,
+    findPurchaseOrder: findPurchaseOrder,
+    addPurchaseOrder: addPurchaseOrder,
+    updateDraftPurchaseOrder: updateDraftPurchaseOrder,
+    sendPurchaseOrder: sendPurchaseOrder,
+    cancelPurchaseOrder: cancelPurchaseOrder,
+    deletePurchaseOrder: deletePurchaseOrder,
+    receivePurchaseOrder: receivePurchaseOrder,
+    poReceivingProgress: poReceivingProgress,
 
     nextInvoiceNumber: nextInvoiceNumber,
     addInvoice: addInvoice,
@@ -1716,11 +2015,16 @@ table.table a:hover { text-decoration: underline; }
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5v15l13-7.5Z"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    vendors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l3 3v5h-3"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="17.5" cy="17.5" r="1.5"/></svg>',
+    purchaseOrders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="M9 12h6M9 16h6M9 8h2"/></svg>',
   };
 
   var NAV_ITEMS = [
     { key: "dashboard", label: "Dashboard", href: "index.html", icon: ICONS.dashboard },
     { key: "products", label: "Products", href: "products.html", icon: ICONS.products },
+    { key: "bom", label: "Bill of Materials", href: "bom.html", icon: ICONS.flask },
+    { key: "vendors", label: "Vendors", href: "vendors.html", icon: ICONS.vendors },
+    { key: "purchase-orders", label: "Purchase Orders", href: "purchase-orders.html", icon: ICONS.purchaseOrders },
     { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
     { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
     { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
@@ -1749,13 +2053,38 @@ table.table a:hover { text-decoration: underline; }
     }
   }
 
+  // The inline "--nc" / "--nc-soft" custom properties below point at that
+  // section's own --sec-<key> variables (see styles.css) rather than
+  // baking in a color directly — so every colored chip stays correct if
+  // the visitor switches Dark/Light in Settings, with no JS re-render
+  // needed: the browser just re-resolves the var() reference.
+  function sectionColorStyle(key) {
+    return colorVarStyle("--sec-" + key);
+  }
+
+  // General version of the same trick, for anything that wants to color
+  // itself off a specific CSS variable rather than a nav section — e.g. a
+  // dashboard stat card colored "--danger" only when it's actually in a
+  // bad state. `baseVar` must have a matching "<baseVar>-soft" variable
+  // defined alongside it (every color in :root does — see styles.css).
+  // Returns a complete style="..." attribute — use colorVarDecls instead
+  // when the element already has other inline styles (an element can only
+  // have one style="" attribute; two would silently break the second).
+  function colorVarStyle(baseVar) {
+    return 'style="' + colorVarDecls(baseVar) + '"';
+  }
+  function colorVarDecls(baseVar) {
+    return "--nc:var(" + baseVar + ");--nc-soft:var(" + baseVar + "-soft);";
+  }
+
   function renderShell(activeKey) {
     applyAccent();
+    var activeItem = NAV_ITEMS.filter(function (item) { return item.key === activeKey; })[0] || NAV_ITEMS[0];
     var navHtml = NAV_ITEMS.map(function (item) {
       var isActive = item.key === activeKey;
       return (
-        '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '">' +
-        item.icon + "<span>" + item.label + "</span></a>"
+        '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '" ' + sectionColorStyle(item.key) + '>' +
+        '<span class="nav-icon-chip">' + item.icon + '</span><span>' + item.label + "</span></a>"
       );
     }).join("");
 
@@ -1766,7 +2095,10 @@ table.table a:hover { text-decoration: underline; }
       "</div>" +
       '<div class="mobile-topbar">' +
         '<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">' + ICONS.menu + "</button>" +
-        '<strong style="font-size:14px;">Manufacturing &amp; Invoicing</strong>' +
+        '<div class="mobile-topbar-current" ' + sectionColorStyle(activeItem.key) + '>' +
+          '<span class="nav-icon-chip">' + activeItem.icon + "</span>" +
+          '<strong class="mobile-topbar-title">' + escapeHtml(activeItem.label) + "</strong>" +
+        "</div>" +
       "</div>" +
       '<div class="app">' +
         '<div class="sidebar-backdrop" id="sidebarBackdrop"></div>' +
@@ -1777,7 +2109,10 @@ table.table a:hover { text-decoration: underline; }
         "</aside>" +
         '<div class="main">' +
           '<header class="topbar">' +
-            '<div><h1 id="pageTitle"></h1><p class="sub" id="pageSub"></p></div>' +
+            '<div class="topbar-heading" ' + sectionColorStyle(activeItem.key) + '>' +
+              '<div class="page-icon-chip">' + activeItem.icon + "</div>" +
+              '<div><h1 id="pageTitle"></h1><p class="sub" id="pageSub"></p></div>' +
+            "</div>" +
             '<div class="topbar-actions" id="topbarActions"></div>' +
           "</header>" +
           '<div class="content" id="pageContent"></div>' +
@@ -1903,6 +2238,18 @@ table.table a:hover { text-decoration: underline; }
   function productionStatusBadge(status) {
     var cls = PO_STATUS_PILL_CLASS[status] || "pill-neutral";
     var label = PO_STATUS_LABELS[status] || status;
+    return '<span class="pill ' + cls + '">' + escapeHtml(label) + "</span>";
+  }
+
+  // Named PURCHASE_* (not PO_*) to avoid colliding with the Production
+  // Order status constants directly above — "PO" already means Production
+  // Order everywhere else in this file, so a real Purchase Order needed
+  // its own, unambiguous name.
+  var PURCHASE_STATUS_LABELS = { draft: "Draft", sent: "Sent", partial: "Partially Received", received: "Received", cancelled: "Cancelled" };
+  var PURCHASE_STATUS_PILL_CLASS = { draft: "pill-neutral", sent: "pill-accent", partial: "pill-warning", received: "pill-success", cancelled: "pill-neutral" };
+  function purchaseOrderStatusBadge(status) {
+    var cls = PURCHASE_STATUS_PILL_CLASS[status] || "pill-neutral";
+    var label = PURCHASE_STATUS_LABELS[status] || status;
     return '<span class="pill ' + cls + '">' + escapeHtml(label) + "</span>";
   }
 
@@ -2189,11 +2536,11 @@ table.table a:hover { text-decoration: underline; }
   // for a given customer + item, the invoice line-items editor (above)
   // uses it instead of that item's normal sellPrice the moment the item
   // is picked on a line — see MFG.customerPriceForItem in store.js.
-  function createPriceOverridesEditor(container, overrides, finishedGoods) {
+  function createPriceOverridesEditor(container, overrides, sellableItems) {
     var state = {
       lines: (overrides || []).map(function (o) { return Object.assign({}, o); }),
     };
-    var items = finishedGoods || [];
+    var items = sellableItems || [];
 
     function itemOptionsHtml(selectedId) {
       var opts = '<option value="">Choose an item…</option>';
@@ -2215,7 +2562,7 @@ table.table a:hover { text-decoration: underline; }
 
     function render() {
       if (!items.length) {
-        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;">Add a finished good on the Products page first, then come back here to give this customer a special price on it.</p>';
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;">Add a finished good or buy &amp; sell item on the Products page first, then come back here to give this customer a special price on it.</p>';
         return;
       }
       if (!state.lines.length) {
@@ -2251,6 +2598,222 @@ table.table a:hover { text-decoration: underline; }
 
     return {
       getLines: function () { return state.lines.filter(function (l) { return l.itemId; }); },
+    };
+  }
+
+  // ---------- Vendor-specific cost pricing editor (Products page) ----------
+  // The purchasing mirror of createPriceOverridesEditor above: lives on a
+  // purchasable item's own record (a raw material or a buy & sell item —
+  // anything bought in) instead of on a customer, and lists {vendorId,
+  // price} instead of {itemId, price} — what each vendor actually charges
+  // for this one item. The purchase order editor (createPoLineItemsEditor
+  // below) uses MFG.vendorPriceForItem to prefill a line's unit cost the
+  // moment both a vendor and an item are picked.
+  function createVendorPricesEditor(container, vendorPrices, vendors) {
+    var state = {
+      lines: (vendorPrices || []).map(function (o) { return Object.assign({}, o); }),
+    };
+    var list = vendors || [];
+
+    function vendorOptionsHtml(selectedId) {
+      var opts = '<option value="">Choose a vendor…</option>';
+      opts += list.map(function (v) {
+        return '<option value="' + v.id + '"' + (selectedId === v.id ? " selected" : "") + ">" + escapeHtml(v.name) + "</option>";
+      }).join("");
+      return opts;
+    }
+
+    function rowHtml(line, idx) {
+      return (
+        '<div class="bom-row" data-idx="' + idx + '">' +
+          '<select class="input" data-field="vendorId" aria-label="Vendor">' + vendorOptionsHtml(line.vendorId) + "</select>" +
+          '<input class="input" type="number" min="0" step="any" data-field="price" value="' + line.price + '" aria-label="Vendor price"/>' +
+          '<button type="button" class="btn-icon" data-remove aria-label="Remove vendor price">' + ICONS.trash + "</button>" +
+        "</div>"
+      );
+    }
+
+    function render() {
+      if (!list.length) {
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;">Add a vendor on the Vendors page first, then come back here to set what they charge for this item.</p>';
+        return;
+      }
+      if (!state.lines.length) {
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;margin-bottom:10px;">No vendor-specific prices yet — new purchase orders default to this item\'s normal cost price.</p>' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="vpAddBtn">' + ICONS.plus + " Add a vendor price</button>";
+      } else {
+        container.innerHTML =
+          '<div class="bom-head"><span>Vendor</span><span>Their price</span><span></span></div>' +
+          state.lines.map(rowHtml).join("") +
+          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="vpAddBtn">' + ICONS.plus + " Add a vendor price</button>";
+      }
+      bind();
+    }
+
+    function bind() {
+      container.querySelectorAll("[data-idx]").forEach(function (rowEl) {
+        var idx = Number(rowEl.getAttribute("data-idx"));
+        rowEl.querySelectorAll("[data-field]").forEach(function (input) {
+          var evt = input.tagName === "SELECT" ? "change" : "input";
+          input.addEventListener(evt, function () {
+            var field = input.getAttribute("data-field");
+            state.lines[idx][field] = field === "price" ? Number(input.value) || 0 : input.value;
+          });
+        });
+        var removeBtn = rowEl.querySelector("[data-remove]");
+        if (removeBtn) removeBtn.addEventListener("click", function () { state.lines.splice(idx, 1); render(); });
+      });
+      var addBtn = container.querySelector("#vpAddBtn");
+      if (addBtn) addBtn.addEventListener("click", function () { state.lines.push({ vendorId: "", price: 0 }); render(); });
+    }
+
+    render();
+
+    return {
+      getLines: function () { return state.lines.filter(function (l) { return l.vendorId; }); },
+    };
+  }
+
+  // ---------- Purchase order line items editor ----------
+  // Structurally the purchasing twin of createLineItemsEditor above, but
+  // deliberately kept as its own component rather than a shared one: it
+  // picks from purchasable items — raw materials and buy-and-sell items
+  // (not finished goods, which are manufactured rather than bought), fills
+  // a unit *cost* (not a sell rate) from a vendor-aware callback, and a
+  // read-only row also surfaces how much of that line has already been
+  // received.
+  function createPoLineItemsEditor(container, items, currency, materials, readOnly, getCostForItem) {
+    var state = {
+      items: (items && items.length ? items : [{ id: MFG.uid(), materialId: null, description: "", quantity: 1, unitCost: 0 }]).map(function (it) {
+        return Object.assign({}, it);
+      }),
+      currency: currency,
+      onChange: null,
+    };
+
+    var activeMaterials = (materials || []).filter(function (m) { return m.active; });
+
+    function amountText(it) {
+      return MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.unitCost || 0)), state.currency);
+    }
+
+    function materialOptionsHtml(selectedId) {
+      var opts = '<option value="">— custom line —</option>';
+      opts += activeMaterials.map(function (m) {
+        var label = m.name + " (" + m.sku + ") — " + MFG.formatCurrency(m.costPrice, state.currency) + "/" + m.unit + ", " + MFG.formatQty(m.stockQty) + " " + m.unit + " in stock";
+        return '<option value="' + m.id + '"' + (selectedId === m.id ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
+      }).join("");
+      return opts;
+    }
+
+    function fieldWrapper(labelText, innerHtml) {
+      return '<div class="line-item-field"><span class="line-item-field-label">' + escapeHtml(labelText) + "</span>" + innerHtml + "</div>";
+    }
+
+    function qtyReadout(it) {
+      var received = Number(it.receivedQty) || 0;
+      return MFG.formatQty(it.quantity) + (received > 0 ? '<div class="line-item-stock-hint">' + MFG.formatQty(received) + " received</div>" : "");
+    }
+
+    function rowHtml(it) {
+      if (readOnly) {
+        return (
+          '<div class="line-item-row line-item-row-readonly" data-row="' + it.id + '">' +
+            fieldWrapper("Description", escapeHtml(it.description || "—")) +
+            fieldWrapper("Qty", qtyReadout(it)) +
+            fieldWrapper("Unit Cost", MFG.formatCurrency(it.unitCost, state.currency)) +
+            '<div class="line-item-amount line-item-field" data-amount><span class="line-item-field-label">Amount</span><span class="line-item-amount-value">' + amountText(it) + "</span></div>" +
+            "<div></div>" +
+          "</div>"
+        );
+      }
+      return (
+        '<div class="line-item-row line-item-row-editable" data-row="' + it.id + '">' +
+          fieldWrapper("Item", '<select class="input" data-field="materialId" aria-label="Item">' + materialOptionsHtml(it.materialId) + "</select>") +
+          fieldWrapper("Description", '<input class="input" data-field="description" value="' + escapeHtml(it.description || "") + '" placeholder="Item or line description" aria-label="Line description"/>') +
+          fieldWrapper("Qty", '<input class="input" type="number" min="0" step="any" data-field="quantity" value="' + it.quantity + '" aria-label="Quantity"/>') +
+          fieldWrapper("Unit Cost", '<input class="input" type="number" min="0" step="any" data-field="unitCost" value="' + it.unitCost + '" aria-label="Unit cost"/>') +
+          '<div class="line-item-amount line-item-field" data-amount><span class="line-item-field-label">Amount</span><span class="line-item-amount-value">' + amountText(it) + "</span></div>" +
+          '<button type="button" class="btn-icon" data-remove aria-label="Remove line item"' + (state.items.length === 1 ? " disabled" : "") + ">" + ICONS.trash + "</button>" +
+        "</div>"
+      );
+    }
+
+    function render() {
+      var headCols = readOnly
+        ? '<div class="line-items-head line-items-head-readonly"><span>Description</span><span>Qty</span><span>Unit Cost</span><span style="text-align:right;">Amount</span><span></span></div>'
+        : '<div class="line-items-head line-items-head-editable"><span>Item</span><span>Description</span><span>Qty</span><span>Unit Cost</span><span style="text-align:right;">Amount</span><span></span></div>';
+      container.innerHTML =
+        '<div class="line-items' + (readOnly ? " line-items-readonly" : "") + '">' +
+          headCols +
+          state.items.map(rowHtml).join("") +
+          (readOnly ? "" : '<button type="button" class="add-line-btn" id="addLineBtn">' + ICONS.plus + " Add line item</button>") +
+        "</div>";
+      if (!readOnly) bind();
+    }
+
+    function bind() {
+      container.querySelectorAll("[data-row]").forEach(function (rowEl) {
+        var id = rowEl.getAttribute("data-row");
+        rowEl.querySelectorAll("[data-field]").forEach(function (input) {
+          var evt = input.tagName === "SELECT" ? "change" : "input";
+          input.addEventListener(evt, function () {
+            var field = input.getAttribute("data-field");
+            var it = state.items.find(function (x) { return x.id === id; });
+            if (!it) return;
+            if (field === "description") {
+              it.description = input.value;
+            } else if (field === "materialId") {
+              var mid = input.value || null;
+              it.materialId = mid;
+              if (mid) {
+                var m = (materials || []).find(function (x) { return x.id === mid; });
+                if (m) {
+                  it.description = m.name;
+                  it.unitCost = (typeof getCostForItem === "function") ? getCostForItem(mid, m.costPrice) : m.costPrice;
+                  var descInput = rowEl.querySelector('[data-field="description"]');
+                  if (descInput) descInput.value = it.description;
+                  var costInput = rowEl.querySelector('[data-field="unitCost"]');
+                  if (costInput) costInput.value = it.unitCost;
+                }
+              }
+              render();
+              if (state.onChange) state.onChange(state.items);
+              return;
+            } else {
+              it[field] = Number(input.value) || 0;
+            }
+            var amountEl = rowEl.querySelector(".line-item-amount-value");
+            if (amountEl) amountEl.textContent = amountText(it);
+            if (state.onChange) state.onChange(state.items);
+          });
+        });
+        var removeBtn = rowEl.querySelector("[data-remove]");
+        if (removeBtn) {
+          removeBtn.addEventListener("click", function () {
+            if (state.items.length === 1) return;
+            state.items = state.items.filter(function (x) { return x.id !== id; });
+            render();
+            if (state.onChange) state.onChange(state.items);
+          });
+        }
+      });
+      var addBtn = container.querySelector("#addLineBtn");
+      if (addBtn) {
+        addBtn.addEventListener("click", function () {
+          state.items.push({ id: MFG.uid(), materialId: null, description: "", quantity: 1, unitCost: 0 });
+          render();
+          if (state.onChange) state.onChange(state.items);
+        });
+      }
+    }
+
+    render();
+
+    return {
+      getItems: function () { return state.items; },
+      setCurrency: function (c) { state.currency = c; render(); },
+      onChange: function (fn) { state.onChange = fn; },
     };
   }
 
@@ -2430,6 +2993,40 @@ table.table a:hover { text-decoration: underline; }
     openPrintWindow("Credit Note", html);
   }
 
+  // Builds and opens a printable purchase order — addressed to the vendor,
+  // listing what's being bought. Reuses the same letterhead (our business
+  // details) as invoices and credit notes; the "Vendor" block below it is
+  // the purchasing equivalent of an invoice's "Bill To" block.
+  function printPurchaseOrder(po, vendor, settings) {
+    var total = MFG.computePoTotal(po);
+    var rowsHtml = (po.items || []).map(function (it) {
+      return "<tr><td>" + escapeHtml(it.description || "—") + "</td>" +
+        "<td class='num'>" + it.quantity + "</td>" +
+        "<td class='num'>" + MFG.formatCurrency(it.unitCost, po.currency) + "</td>" +
+        "<td class='num'>" + MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.unitCost || 0)), po.currency) + "</td></tr>";
+    }).join("");
+    var metaLines = [
+      { label: "Issued", value: MFG.formatDate(po.issueDate) },
+      { label: "Expected", value: po.expectedDate ? MFG.formatDate(po.expectedDate) : "—" },
+    ];
+    var vendorLines = vendor ? [vendor.name, vendor.company, vendor.email, vendor.address].filter(Boolean) : ["—"];
+    var html =
+      printLetterhead(settings, "PURCHASE ORDER", po.number, metaLines) +
+      '<div class="bill-to">' +
+        '<div class="label">Vendor</div>' +
+        vendorLines.map(function (l, i) { return '<div class="' + (i === 0 ? "name" : "muted") + '">' + escapeHtml(l) + "</div>"; }).join("") +
+      "</div>" +
+      "<table><thead><tr><th>Description</th><th class='num'>Qty</th><th class='num'>Unit Cost</th><th class='num'>Amount</th></tr></thead><tbody>" +
+      rowsHtml +
+      "</tbody></table>" +
+      '<div class="total-box"><div class="inner">' +
+        '<span class="label">Total</span><span class="value">' + MFG.formatCurrency(total, po.currency) + "</span>" +
+      "</div></div>" +
+      (po.notes ? '<h2>Notes</h2><p class="muted">' + escapeHtml(po.notes) + "</p>" : "") +
+      '<div class="doc-footer"><div class="thanks">Thank you.</div><div class="stamp">Generated ' + MFG.formatDate(MFG.todayISO()) + "</div></div>";
+    openPrintWindow("Purchase Order " + po.number, html);
+  }
+
   global.MFGUI = {
     ICONS: ICONS,
     applyAccent: applyAccent,
@@ -2446,7 +3043,12 @@ table.table a:hover { text-decoration: underline; }
     createLineItemsEditor: createLineItemsEditor,
     createBomEditor: createBomEditor,
     createPriceOverridesEditor: createPriceOverridesEditor,
+    createVendorPricesEditor: createVendorPricesEditor,
+    createPoLineItemsEditor: createPoLineItemsEditor,
+    purchaseOrderStatusBadge: purchaseOrderStatusBadge,
     kanbanBoardHtml: kanbanBoardHtml,
+    colorVarStyle: colorVarStyle,
+    colorVarDecls: colorVarDecls,
     el: el,
     qs: qs,
     BUILD_DATE: BUILD_DATE,
@@ -2456,6 +3058,7 @@ table.table a:hover { text-decoration: underline; }
     printLetterhead: printLetterhead,
     printInvoice: printInvoice,
     printCreditNote: printCreditNote,
+    printPurchaseOrder: printPurchaseOrder,
   };
 })(window);
 
@@ -2587,14 +3190,14 @@ table.table a:hover { text-decoration: underline; }
       '<div class="field"><label>Billing address</label><textarea class="input" id="fAddress" rows="2">' + MFGUI.escapeHtml(v.address || "") + "</textarea></div>" +
       '<div class="field"><label>Notes</label><textarea class="input" id="fNotes" rows="2" placeholder="Internal notes, not shown on invoices.">' + MFGUI.escapeHtml(v.notes || "") + "</textarea></div>" +
       '<div class="field"><label>Custom Pricing</label><div id="priceOverridesContainer"></div>' +
-      '<span class="hint">Give this customer a different price than usual on specific finished goods — it auto-fills instead of the normal sell price when you pick that item on one of their invoices.</span></div>'
+      '<span class="hint">Give this customer a different price than usual on specific items — it auto-fills instead of the normal sell price when you pick that item on one of their invoices.</span></div>'
     );
   }
 
   function mountPriceOverridesEditor(existing) {
     var container = document.getElementById("priceOverridesContainer");
     if (!container) { priceOverridesHandle = null; return; }
-    priceOverridesHandle = MFGUI.createPriceOverridesEditor(container, existing ? existing.priceOverrides : [], MFG.finishedItems());
+    priceOverridesHandle = MFGUI.createPriceOverridesEditor(container, existing ? existing.priceOverrides : [], MFG.sellableItems());
   }
 
   function readForm(root) {

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Invoice Editor · Manufacturing &amp; Invoicing Manager</title>
-<meta name="description" content="Create or edit an invoice, pick items straight from stock, apply credit notes, and print or save as PDF." />
+<title>Purchase Orders · Manufacturing &amp; Invoicing Manager</title>
+<meta name="description" content="Every purchase order you've sent to a vendor, its status, and what's been received." />
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwMDAwMDAiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDMiIGZvbnQtZmFtaWx5PSItYXBwbGUtc3lzdGVtLFNlZ29lIFVJLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlM8L3RleHQ+Cjwvc3ZnPgo=" type="image/svg+xml" />
 <style>
 /* =========================================================
@@ -809,7 +809,7 @@ table.table a:hover { text-decoration: underline; }
 
 </style>
 </head>
-<body data-page="editor">
+<body data-page="purchase-orders">
 <div id="app-shell"></div>
 <div class="toast-root" id="toast-root"></div>
 <div id="modal-root"></div>
@@ -3064,597 +3064,134 @@ table.table a:hover { text-decoration: underline; }
 
 </script>
 <script>
-/* Invoice editor page — create or edit (?id=<invoiceId>)
-   ---------------------------------------------------------
-   Line items can be tied to a catalog item (see the item picker inside
-   MFGUI.createLineItemsEditor), and a DRAFT invoice is fully editable
-   and stock-neutral. Sending it (Save & Send, or Send from an existing
-   draft) is the one moment stock is touched — atomically, and only if
-   every item-linked line has enough on hand; see MFG.sendInvoice /
-   MFG.stockShortagesForInvoice in store.js. Once sent, the form and
-   line items lock: to change what was actually sold, cancel the
-   invoice (which restores the stock) and start over, or issue a
-   follow-up invoice. Credit notes are a separate ledger — apply one
-   from here once the invoice has been sent. */
+/* Purchase Orders list page */
 (function () {
   "use strict";
 
-  var shell = MFGUI.renderShell("invoices");
-
-  var params = new URLSearchParams(window.location.search);
-  var id = params.get("id");
+  var shell = MFGUI.renderShell("purchase-orders");
   var data = MFG.getData();
-  var existing = id ? data.invoices.find(function (i) { return i.id === id; }) : undefined;
+  shell.setTitle("Purchase Orders", data.purchaseOrders.length + " total purchase orders");
+  shell.setActions('<a class="btn btn-primary btn-sm" href="po-editor.html">' + MFGUI.ICONS.plus + '<span class="long">New Purchase Order</span></a>');
 
-  if (id && !existing) {
-    shell.setTitle("Invoice not found", "");
-    shell.contentEl.innerHTML =
-      '<div class="empty" style="padding-top:64px;">' +
-        '<div class="icon-wrap">' + MFGUI.ICONS.invoices + "</div>" +
-        "<h3>This invoice could not be found</h3><p>It may have been deleted.</p>" +
-        '<div class="mt-2"><a class="btn btn-secondary btn-sm" href="invoices.html">Back to Invoices</a></div>' +
-      "</div>";
-    return;
-  }
+  var FILTERS = [
+    { label: "All", value: "all" },
+    { label: "Draft", value: "draft" },
+    { label: "Sent", value: "sent" },
+    { label: "Partial", value: "partial" },
+    { label: "Received", value: "received" },
+    { label: "Cancelled", value: "cancelled" },
+  ];
 
-  var CURRENCIES = MFG.CURRENCY_CODES.slice().sort();
+  var query = "";
+  var filter = "all";
 
-  // Locked = an existing invoice that isn't (or is no longer) a draft.
-  // A brand-new invoice is always editable; only an existing invoice
-  // carries a status that can lock it.
-  function rawStatus() { return existing ? existing.status : "draft"; }
-  function isDraft() { return rawStatus() === "draft"; }
-
-  var state = existing
-    ? {
-        customerId: existing.customerId,
-        issueDate: existing.issueDate,
-        dueDate: existing.dueDate,
-        items: existing.items && existing.items.length ? existing.items : [{ id: MFG.uid(), productId: null, description: "", quantity: 1, rate: 0 }],
-        taxRate: existing.taxRate,
-        discountType: existing.discountType,
-        discountValue: existing.discountValue,
-        currency: existing.currency,
-        notes: existing.notes || "",
-      }
-    : {
-        customerId: data.customers.length === 1 ? data.customers[0].id : "",
-        issueDate: MFG.todayISO(),
-        dueDate: MFG.addDays(MFG.todayISO(), 14),
-        items: [{ id: MFG.uid(), productId: null, description: "", quantity: 1, rate: 0 }],
-        taxRate: data.settings.defaultTaxRate,
-        discountType: "percent",
-        discountValue: 0,
-        currency: data.settings.currency,
-        notes: "",
-      };
-
-  var lineItemsEditor = null;
-
-  function customerOptionsHtml() {
-    if (data.customers.length === 0) return "";
-    return '<option value="">Select a customer…</option>' + data.customers.map(function (c) {
-      return '<option value="' + c.id + '"' + (state.customerId === c.id ? " selected" : "") + ">" + MFGUI.escapeHtml(c.name) + (c.company ? " — " + MFGUI.escapeHtml(c.company) : "") + "</option>";
-    }).join("");
-  }
-
-  function customer() {
-    return data.customers.find(function (c) { return c.id === state.customerId; });
-  }
-
-  function currentTotals() {
-    return MFG.computeTotals(state);
-  }
-
-  function paidAmount() {
-    return existing ? MFG.amountPaid(existing.id, data.payments) : 0;
-  }
-  function creditApplied() {
-    return existing ? MFG.creditAppliedForInvoice(existing.id, data.creditNotes) : 0;
-  }
-  function currentStatus() {
-    var totals = currentTotals();
-    return existing ? MFG.derivedStatus(existing, MFG.round2(paidAmount() + creditApplied()), totals.total) : "draft";
-  }
-
-  function openCreditNotesForCustomer() {
-    if (!existing) return [];
-    return data.creditNotes.filter(function (cn) {
-      return cn.customerId === existing.customerId && MFG.remainingCredit(cn) > 0;
-    });
-  }
-
-  function renderHeaderActions() {
-    if (!existing) return "";
-    var raw = rawStatus();
-    var totals = currentTotals();
-    var balance = MFG.round2(totals.total - paidAmount() - creditApplied());
-    var html = "";
-    if (raw === "sent" && balance > 0) {
-      html += '<button class="btn btn-secondary btn-sm" id="payBtn">' + MFGUI.ICONS.wallet + " Record Payment</button>";
-      if (openCreditNotesForCustomer().length > 0) {
-        html += '<button class="btn btn-secondary btn-sm" id="applyCreditBtn">' + MFGUI.ICONS.creditNote + " Apply Credit</button>";
-      }
-    }
-    html += '<button class="btn btn-secondary btn-sm" id="duplicateBtn">' + MFGUI.ICONS.copy + " Duplicate</button>";
-    if (raw === "sent") html += '<button class="btn btn-secondary btn-sm" id="cancelBtn">' + MFGUI.ICONS.ban + " Cancel Invoice</button>";
-    if (raw === "cancelled") html += '<button class="btn btn-secondary btn-sm" id="reopenBtn">' + MFGUI.ICONS.rotateCcw + " Reopen as Draft</button>";
-    html += '<button class="btn btn-danger btn-sm" id="deleteBtn">' + MFGUI.ICONS.trash + " Delete</button>";
-    return html;
-  }
-
-  function renderTotalsSummary() {
-    var totals = currentTotals();
-    var html = '<div class="summary-list">';
-    html += '<div class="summary-row"><span>Subtotal</span><span>' + MFG.formatCurrency(totals.subtotal, state.currency) + "</span></div>";
-    if (totals.discount > 0) html += '<div class="summary-row"><span>Discount</span><span>-' + MFG.formatCurrency(totals.discount, state.currency) + "</span></div>";
-    if (totals.tax > 0) html += '<div class="summary-row"><span>Tax (' + state.taxRate + '%)</span><span>' + MFG.formatCurrency(totals.tax, state.currency) + "</span></div>";
-    html += '<div class="summary-row total"><span>Total</span><span>' + MFG.formatCurrency(totals.total, state.currency) + "</span></div>";
-    if (existing) {
-      var paid = paidAmount();
-      var credit = creditApplied();
-      if (paid > 0 || credit > 0) {
-        var balance = MFG.round2(totals.total - paid - credit);
-        if (paid > 0) html += '<div class="summary-row success"><span>Paid</span><span>-' + MFG.formatCurrency(paid, state.currency) + "</span></div>";
-        if (credit > 0) html += '<div class="summary-row success"><span>Credit Applied</span><span>-' + MFG.formatCurrency(credit, state.currency) + "</span></div>";
-        html += '<div class="summary-row balance"><span>Balance due</span><span>' + MFG.formatCurrency(balance, state.currency) + "</span></div>";
-      }
-    }
-    html += "</div>";
-    return html;
+  function vendorName(id) {
+    var v = MFG.getData().vendors.find(function (x) { return x.id === id; });
+    return v ? v.name : "Unknown vendor";
   }
 
   function render() {
-    var status = currentStatus();
-    var draft = isDraft();
-    shell.setActions("");
-    shell.contentEl.innerHTML =
-      '<div class="max-width-editor">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">' +
-          '<a href="invoices.html" style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:13px;">&larr; Invoices</a>' +
-          (existing ? MFGUI.statusBadge(status) : "") +
-        "</div>" +
-        '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">' +
-          "<h1 style=\"font-size:20px;font-weight:650;\">" + (existing ? "Invoice " + MFGUI.escapeHtml(existing.number) : "New Invoice") + "</h1>" +
-          '<div style="display:flex;flex-wrap:wrap;gap:8px;" id="headerActions">' + renderHeaderActions() + "</div>" +
-        "</div>" +
+    var d = MFG.getData();
+    shell.setTitle("Purchase Orders", d.purchaseOrders.length + " total purchase orders");
 
-        (draft ? "" :
-          '<div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:10px;background:var(--surface-2,var(--surface));">' +
-            MFGUI.ICONS.alert +
-            '<p class="text-secondary" style="font-size:12.5px;margin:0;">' +
-              (raw() === "cancelled"
-                ? "This invoice is cancelled and read-only. Reopen it to edit, or duplicate it into a fresh draft."
-                : "This invoice has been sent, so its stock deduction is locked in and the details below are read-only. Cancel it to restore stock and make changes, or duplicate it into a fresh draft.") +
-            "</p>" +
-          "</div>"
-        ) +
+    var q = query.trim().toLowerCase();
+    var filtered = d.purchaseOrders
+      .filter(function (po) { return filter === "all" || po.status === filter; })
+      .filter(function (po) {
+        if (!q) return true;
+        return po.number.toLowerCase().indexOf(q) !== -1 || vendorName(po.vendorId).toLowerCase().indexOf(q) !== -1;
+      })
+      .sort(function (a, b) { return a.issueDate < b.issueDate ? 1 : -1; });
 
-        '<div class="card section-card">' +
-          '<div class="form-grid">' +
-            '<div class="field"><label>Customer<span class="req">*</span></label>' +
-            (data.customers.length === 0
-              ? '<p class="text-tertiary" style="font-size:13px;border:1px dashed var(--border-strong);border-radius:8px;padding:10px 12px;">No customers yet. <a href="customers.html" style="color:var(--text);">Add one first</a>.</p>'
-              : '<select class="input" id="fCustomer"' + (draft ? "" : " disabled") + '>' + customerOptionsHtml() + "</select>") +
-            '<span class="error hidden" id="fCustomerErr">Select a customer.</span></div>' +
-            '<div class="field"><label>Currency</label><select class="input" id="fCurrency"' + (draft ? "" : " disabled") + '>' +
-              CURRENCIES.map(function (c) { return '<option value="' + c + '"' + (state.currency === c ? " selected" : "") + ">" + c + " (" + MFGUI.escapeHtml(MFG.currencySymbol(c)) + ")</option>"; }).join("") +
-            "</select></div>" +
-            '<div class="field"><label>Issue date</label><input class="input" type="date" id="fIssue" value="' + state.issueDate + '"' + (draft ? "" : " disabled") + "/></div>" +
-            '<div class="field"><label>Due date</label><input class="input" type="date" id="fDue" value="' + state.dueDate + '"' + (draft ? "" : " disabled") + "/></div>" +
-          "</div>" +
-        "</div>" +
+    var filterChips = FILTERS.map(function (f) {
+      return '<button class="chip' + (filter === f.value ? " active" : "") + '" data-filter="' + f.value + '">' + f.label + "</button>";
+    }).join("");
 
-        '<div class="card section-card">' +
-          "<h2>Line Items</h2>" +
-          (draft ? '<p class="text-secondary" style="font-size:12px;margin-top:-8px;margin-bottom:12px;">Pick an item to auto-fill its price and see live stock — or leave it as a custom line for a one-off fee or service. Pick the customer above first if they have a custom price on file (set on their Customers page profile).</p>' : "") +
-          '<span class="error hidden" id="fItemsErr" style="display:block;margin-bottom:10px;">Add at least one line item.</span>' +
-          '<div id="lineItemsContainer"></div>' +
+    var toolbar =
+      '<div class="flex-col" style="gap:12px;margin-bottom:16px;">' +
+        '<div class="field" style="max-width:320px;position:relative;">' +
+          '<input class="input" id="searchInput" placeholder="Search by vendor or PO #…" value="' + MFGUI.escapeHtml(query) + '" style="padding-left:34px;"/>' +
+          '<span style="position:absolute;left:10px;top:9px;width:16px;height:16px;color:var(--text-tertiary);">' + MFGUI.ICONS.search + "</span>" +
         "</div>" +
-
-        '<div class="card section-card">' +
-          '<div class="form-grid" style="grid-template-columns:repeat(3,1fr);">' +
-            '<div class="field"><label>Tax rate (%)</label><input class="input" type="number" min="0" step="any" id="fTax" value="' + state.taxRate + '"' + (draft ? "" : " disabled") + "/></div>" +
-            '<div class="field"><label>Discount type</label><select class="input" id="fDiscType"' + (draft ? "" : " disabled") + '>' +
-              '<option value="percent"' + (state.discountType === "percent" ? " selected" : "") + ">Percent (%)</option>" +
-              '<option value="fixed"' + (state.discountType === "fixed" ? " selected" : "") + ">Fixed amount</option>" +
-            "</select></div>" +
-            '<div class="field"><label>Discount value</label><input class="input" type="number" min="0" step="any" id="fDiscValue" value="' + state.discountValue + '"' + (draft ? "" : " disabled") + "/></div>" +
-          "</div>" +
-          '<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;" id="totalsSummary">' + renderTotalsSummary() + "</div>" +
-        "</div>" +
-
-        '<div class="card section-card">' +
-          '<div class="field"><label>Notes</label><textarea class="input" id="fNotes" rows="3" placeholder="Thanks for your business!"' + (draft ? "" : " disabled") + '>' + MFGUI.escapeHtml(state.notes) + "</textarea>" +
-          '<span class="hint">Shown on the printed invoice, under Payment Instructions (set the default instructions themselves in Settings).</span></div>' +
-        "</div>" +
-
-        '<div class="editor-actionbar">' +
-          '<button class="btn btn-secondary btn-sm" id="printBtn">' + MFGUI.ICONS.print + " Print / Save as PDF</button>" +
-          (draft
-            ? '<button class="btn btn-secondary btn-sm" id="saveDraftBtn">' + MFGUI.ICONS.pencil + " Save Draft</button>" +
-              '<button class="btn btn-primary btn-sm" id="saveSendBtn">' + MFGUI.ICONS.mail + " Save &amp; Send</button>"
-            : "") +
-        "</div>" +
+        '<div class="chip-row">' + filterChips + "</div>" +
       "</div>";
 
-    lineItemsEditor = MFGUI.createLineItemsEditor(
-      document.getElementById("lineItemsContainer"),
-      state.items,
-      state.currency,
-      MFG.sellableItems(),
-      !draft,
-      function (itemId, defaultPrice) {
-        if (!state.customerId) return defaultPrice;
-        var override = MFG.customerPriceForItem(state.customerId, itemId);
-        return override == null ? defaultPrice : override;
-      }
-    );
-    if (draft) {
-      lineItemsEditor.onChange(function (items) {
-        state.items = items;
-        refreshTotals();
-      });
-    }
-
-    bind();
-  }
-
-  function raw() { return rawStatus(); }
-
-  function refreshTotals() {
-    var el = document.getElementById("totalsSummary");
-    if (el) el.innerHTML = renderTotalsSummary();
-  }
-
-  function readFormIntoState() {
-    if (!isDraft()) return;
-    if (data.customers.length > 0) state.customerId = document.getElementById("fCustomer").value;
-    state.currency = document.getElementById("fCurrency").value;
-    state.issueDate = document.getElementById("fIssue").value;
-    state.dueDate = document.getElementById("fDue").value;
-    state.taxRate = Number(document.getElementById("fTax").value) || 0;
-    state.discountType = document.getElementById("fDiscType").value;
-    state.discountValue = Number(document.getElementById("fDiscValue").value) || 0;
-    state.notes = document.getElementById("fNotes").value.trim();
-    state.items = lineItemsEditor.getItems();
-  }
-
-  function validate() {
-    var ok = true;
-    document.getElementById("fItemsErr").classList.add("hidden");
-    var customerErr = document.getElementById("fCustomerErr");
-    if (customerErr) customerErr.classList.add("hidden");
-    if (!state.customerId) {
-      if (customerErr) customerErr.classList.remove("hidden");
-      ok = false;
-    }
-    var hasDescription = state.items.some(function (it) { return (it.description || "").trim(); });
-    if (!hasDescription) {
-      document.getElementById("fItemsErr").classList.remove("hidden");
-      ok = false;
-    }
-    return ok;
-  }
-
-  function buildPayload() {
-    return {
-      customerId: state.customerId,
-      issueDate: state.issueDate,
-      dueDate: state.dueDate,
-      items: state.items,
-      taxRate: state.taxRate,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      currency: state.currency,
-      notes: state.notes || undefined,
-    };
-  }
-
-  function showShortages(shortages) {
-    var body = '<p class="text-secondary" style="font-size:13px;margin-bottom:10px;">There isn’t enough stock to send this invoice:</p>' +
-      '<div class="divider-list">' + shortages.map(function (s) {
-        return '<div class="row"><span>' + MFGUI.escapeHtml(s.name) + '</span><span class="text-secondary" style="font-size:12px;">need ' + s.needed + " " + MFGUI.escapeHtml(s.unit) + ", have " + s.available + " " + MFGUI.escapeHtml(s.unit) + "</span></div>";
-      }).join("") + "</div>" +
-      '<p class="text-tertiary" style="font-size:12px;margin-top:10px;">Restock those items (or make more via Production), or adjust the quantities on this invoice, then try sending again. Your changes here have been kept as a draft.</p>';
-    MFGUI.openModal({
-      title: "Not enough stock to send",
-      body: body,
-      footer: '<button class="btn btn-primary" id="okBtn">Got it</button>',
-      onMount: function (root, close) { root.querySelector("#okBtn").addEventListener("click", close); },
-    });
-  }
-
-  function bind() {
-    ["fCurrency", "fIssue", "fDue", "fTax", "fDiscType", "fDiscValue"].forEach(function (fieldId) {
-      var el = document.getElementById(fieldId);
-      if (!el) return;
-      el.addEventListener("input", function () { readFormIntoState(); refreshTotals(); });
-      el.addEventListener("change", function () {
-        readFormIntoState();
-        if (fieldId === "fCurrency") lineItemsEditor.setCurrency(state.currency);
-        refreshTotals();
-      });
-    });
-    var customerSel = document.getElementById("fCustomer");
-    if (customerSel) customerSel.addEventListener("change", readFormIntoState);
-    var notesEl = document.getElementById("fNotes");
-    if (notesEl) notesEl.addEventListener("input", readFormIntoState);
-
-    document.getElementById("printBtn").addEventListener("click", function () {
-      readFormIntoState();
-      if (!validate()) return;
-      var invoice = existing
-        ? Object.assign({}, existing, isDraft() ? buildPayload() : {})
-        : Object.assign({ id: "preview", number: MFG.nextInvoiceNumber(), status: "draft", createdAt: MFG.nowISO(), updatedAt: MFG.nowISO() }, buildPayload());
-      MFGUI.printInvoice(invoice, customer(), data.settings, data.payments, data.creditNotes);
-    });
-
-    var saveDraftBtn = document.getElementById("saveDraftBtn");
-    if (saveDraftBtn) {
-      saveDraftBtn.addEventListener("click", function () {
-        readFormIntoState();
-        if (!validate()) return;
-        if (existing) {
-          var res = MFG.updateDraftInvoice(existing.id, buildPayload());
-          if (!res.ok) { MFGUI.toast(res.error, "error"); return; }
-          MFGUI.toast("Draft saved.");
-          data = MFG.getData();
-          existing = data.invoices.find(function (i) { return i.id === id; });
-          render();
-        } else {
-          var added = MFG.addInvoice(Object.assign({ status: "draft" }, buildPayload()));
-          MFGUI.toast("Draft saved.");
-          window.location.href = "editor.html?id=" + added.invoice.id;
-        }
-      });
-    }
-
-    var saveSendBtn = document.getElementById("saveSendBtn");
-    if (saveSendBtn) {
-      saveSendBtn.addEventListener("click", function () {
-        readFormIntoState();
-        if (!validate()) return;
-
-        if (!existing) {
-          // Save as a draft first, then attempt to send it. This way a
-          // stock shortage never loses the work that was just typed in —
-          // the invoice already exists (as a draft) by the time the
-          // shortage is reported.
-          var draftAdd = MFG.addInvoice(Object.assign({ status: "draft" }, buildPayload()));
-          id = draftAdd.invoice.id;
-          window.history.replaceState(null, "", "editor.html?id=" + id);
-          var sendRes = MFG.sendInvoice(id);
-          data = MFG.getData();
-          existing = data.invoices.find(function (i) { return i.id === id; });
-          if (!sendRes.ok) { showShortages(sendRes.shortages); render(); return; }
-          MFGUI.toast("Invoice sent and stock updated.");
-          offerPostSendActions(sendRes.invoice);
-          render();
-          return;
-        }
-
-        var draftRes = MFG.updateDraftInvoice(existing.id, buildPayload());
-        if (!draftRes.ok) { MFGUI.toast(draftRes.error, "error"); return; }
-        var sendRes = MFG.sendInvoice(existing.id);
-        if (!sendRes.ok) { showShortages(sendRes.shortages); data = MFG.getData(); existing = data.invoices.find(function (i) { return i.id === id; }); render(); return; }
-        MFGUI.toast("Invoice sent and stock updated.");
-        offerPostSendActions(sendRes.invoice);
-        data = MFG.getData();
-        existing = data.invoices.find(function (i) { return i.id === id; });
-        render();
-      });
-    }
-
-    // Deliberately NOT automatic: this used to redirect the whole tab to
-    // a mailto: link on a timer right after sending, with no confirmation.
-    // On a machine with no default mail app configured, that redirect can
-    // sit there waiting on an OS-level "choose an app" prompt — which
-    // looks exactly like the page freezing. Showing an explicit modal
-    // instead means sending an invoice never has a surprise side effect,
-    // and it's honest about what a browser can and can't do: mailto:
-    // opens a blank compose window with no way to attach a file (no web
-    // page can attach files to it — that's a browser/OS limit, not
-    // something this app can work around), so the PDF has to be
-    // downloaded and attached by hand either way.
-    function offerPostSendActions(invoice) {
-      var c = customer();
-      var body =
-        '<p class="text-secondary" style="font-size:13px;">Invoice ' + MFGUI.escapeHtml(invoice.number) + " was sent and stock was updated." + "</p>" +
-        '<p class="text-tertiary" style="font-size:12px;">Browsers can\'t attach a file to an email automatically — download the PDF first, then attach it yourself in the email that opens.</p>';
-      MFGUI.openModal({
-        title: "Invoice Sent",
-        body: body,
-        footer:
-          '<button class="btn btn-secondary btn-sm" id="psPdfBtn">' + MFGUI.ICONS.print + " Download PDF</button>" +
-          (c && c.email ? '<button class="btn btn-secondary btn-sm" id="psEmailBtn">' + MFGUI.ICONS.mail + " Email " + MFGUI.escapeHtml(c.name) + "</button>" : "") +
-          '<button class="btn btn-primary btn-sm" id="psDoneBtn">Done</button>',
-        onMount: function (root, close) {
-          root.querySelector("#psDoneBtn").addEventListener("click", close);
-          root.querySelector("#psPdfBtn").addEventListener("click", function () {
-            MFGUI.printInvoice(invoice, c, data.settings, data.payments, data.creditNotes);
-          });
-          var emailBtn = root.querySelector("#psEmailBtn");
-          if (emailBtn) {
-            emailBtn.addEventListener("click", function () {
-              var totals = MFG.computeTotals(invoice);
-              var subject = encodeURIComponent("Invoice " + invoice.number + " from " + data.settings.businessName);
-              var mailBody = encodeURIComponent(
-                "Hi " + c.name + ",\n\nPlease find invoice " + invoice.number + " for " + MFG.formatCurrency(totals.total, invoice.currency) +
-                ", due " + invoice.dueDate + ".\n\n(Attach the PDF you just downloaded before sending.)\n\nThank you!\n" + data.settings.businessName
-              );
-              // window.open, not location.href — opens the mail app/tab
-              // without navigating this one away, so there's nothing here
-              // for a missing mail handler to hang or lose work on.
-              window.open("mailto:" + c.email + "?subject=" + subject + "&body=" + mailBody, "_blank");
-            });
+    var body;
+    if (filtered.length === 0) {
+      body = MFGUI.emptyState(
+        "purchaseOrders",
+        d.purchaseOrders.length === 0 ? "No purchase orders yet" : "No matching purchase orders",
+        d.purchaseOrders.length === 0 ? "Create your first purchase order to start ordering materials from a vendor." : "Try a different search or filter.",
+        d.purchaseOrders.length === 0 ? '<a class="btn btn-primary btn-sm" href="po-editor.html">' + MFGUI.ICONS.plus + " New Purchase Order</a>" : ""
+      );
+    } else {
+      body =
+        '<div class="table-wrap"><table class="table"><thead><tr>' +
+          "<th>PO #</th><th>Vendor</th><th>Issued</th><th>Expected</th><th>Status</th>" +
+          '<th class="num">Total</th><th class="num">Received</th><th class="num">Actions</th>' +
+        "</tr></thead><tbody>" +
+        filtered.map(function (po) {
+          var total = MFG.computePoTotal(po);
+          var progress = MFG.poReceivingProgress(po);
+          var anyReceived = progress.totalReceived > 0;
+          var actions = '<button class="btn-icon neutral" data-print="' + po.id + '" title="Print / PDF" aria-label="Print or save as PDF">' + MFGUI.ICONS.print + "</button>";
+          if (!anyReceived) {
+            actions += '<button class="btn-icon" data-delete="' + po.id + '" title="Delete" aria-label="Delete purchase order">' + MFGUI.ICONS.trash + "</button>";
           }
-        },
-      });
+          return (
+            "<tr>" +
+              '<td><a href="po-editor.html?id=' + po.id + '">' + MFGUI.escapeHtml(po.number) + "</a></td>" +
+              "<td>" + MFGUI.escapeHtml(vendorName(po.vendorId)) + "</td>" +
+              "<td>" + MFG.formatDate(po.issueDate) + "</td>" +
+              "<td>" + (po.expectedDate ? MFG.formatDate(po.expectedDate) : "—") + "</td>" +
+              "<td>" + MFGUI.purchaseOrderStatusBadge(po.status) + "</td>" +
+              '<td class="num">' + MFG.formatCurrency(total, po.currency) + "</td>" +
+              '<td class="num">' + (progress.totalOrdered > 0 ? MFG.formatQty(progress.totalReceived) + " / " + MFG.formatQty(progress.totalOrdered) : "—") + "</td>" +
+              '<td class="num"><div class="table-actions">' + actions + "</div></td>" +
+            "</tr>"
+          );
+        }).join("") +
+        "</tbody></table></div>";
     }
 
-    var payBtn = document.getElementById("payBtn");
-    if (payBtn) payBtn.addEventListener("click", openPaymentModal);
+    shell.contentEl.innerHTML = toolbar + body;
 
-    var applyCreditBtn = document.getElementById("applyCreditBtn");
-    if (applyCreditBtn) applyCreditBtn.addEventListener("click", openApplyCreditModal);
-
-    var dupBtn = document.getElementById("duplicateBtn");
-    if (dupBtn) {
-      dupBtn.addEventListener("click", function () {
-        var copy = MFG.addInvoice({
-          status: "draft",
-          customerId: existing.customerId,
-          issueDate: MFG.todayISO(),
-          dueDate: MFG.addDays(MFG.todayISO(), 14),
-          items: existing.items.map(function (it) { return Object.assign({}, it, { id: MFG.uid() }); }),
-          taxRate: existing.taxRate,
-          discountType: existing.discountType,
-          discountValue: existing.discountValue,
-          currency: existing.currency,
-          notes: existing.notes,
-        });
-        MFGUI.toast("Invoice duplicated as a new draft.");
-        window.location.href = "editor.html?id=" + copy.invoice.id;
+    var searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        query = searchInput.value;
+        var pos = searchInput.selectionStart;
+        render();
+        var again = document.getElementById("searchInput");
+        if (again) { again.focus(); again.setSelectionRange(pos, pos); }
       });
     }
-
-    var cancelBtn = document.getElementById("cancelBtn");
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", function () {
+    shell.contentEl.querySelectorAll("[data-filter]").forEach(function (btn) {
+      btn.addEventListener("click", function () { filter = btn.getAttribute("data-filter"); render(); });
+    });
+    shell.contentEl.querySelectorAll("[data-print]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var dd = MFG.getData();
+        var po = dd.purchaseOrders.find(function (x) { return x.id === btn.getAttribute("data-print"); });
+        if (!po) return;
+        MFGUI.printPurchaseOrder(po, dd.vendors.find(function (v) { return v.id === po.vendorId; }), dd.settings);
+      });
+    });
+    shell.contentEl.querySelectorAll("[data-delete]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-delete");
         MFGUI.confirmDialog({
-          title: "Cancel invoice?",
-          description: "This restores any stock it deducted and marks the invoice as cancelled. It will no longer count toward outstanding balances.",
-          confirmLabel: "Cancel Invoice",
-          onConfirm: function () {
-            MFG.cancelInvoice(existing.id);
-            MFGUI.toast("Invoice cancelled and stock restored.");
-            data = MFG.getData();
-            existing = data.invoices.find(function (i) { return i.id === id; });
-            render();
-          },
-        });
-      });
-    }
-
-    var reopenBtn = document.getElementById("reopenBtn");
-    if (reopenBtn) {
-      reopenBtn.addEventListener("click", function () {
-        MFGUI.confirmDialog({
-          title: "Reopen as draft?",
-          description: "This makes the invoice editable again. Sending it a second time will re-check stock fresh.",
-          confirmLabel: "Reopen",
-          dangerless: true,
-          onConfirm: function () {
-            MFG.reopenInvoice(existing.id);
-            MFGUI.toast("Invoice reopened as a draft.");
-            data = MFG.getData();
-            existing = data.invoices.find(function (i) { return i.id === id; });
-            render();
-          },
-        });
-      });
-    }
-
-    var deleteBtn = document.getElementById("deleteBtn");
-    if (deleteBtn) {
-      deleteBtn.addEventListener("click", function () {
-        MFGUI.confirmDialog({
-          title: "Delete invoice?",
-          description: "This permanently deletes the invoice and any payments recorded against it. If it was sent, its stock deduction is restored first, and any credit notes applied to it are freed up again.",
+          title: "Delete purchase order?",
+          description: "This permanently deletes the purchase order. Only possible because nothing on it has been received yet.",
           confirmLabel: "Delete",
           onConfirm: function () {
-            MFG.deleteInvoice(existing.id);
-            MFGUI.toast("Invoice deleted.", "info");
-            window.location.href = "invoices.html";
+            var res = MFG.deletePurchaseOrder(id);
+            if (!res.ok) { MFGUI.toast(res.error, "error"); return; }
+            MFGUI.toast("Purchase order deleted.", "info");
+            render();
           },
         });
       });
-    }
-  }
-
-  function openPaymentModal() {
-    var totals = currentTotals();
-    var balance = MFG.round2(totals.total - paidAmount() - creditApplied());
-    var body =
-      '<p class="text-tertiary" style="font-size:12px;">Balance due: <strong style="color:var(--text);">' + MFG.formatCurrency(balance, state.currency) + "</strong></p>" +
-      '<div class="field"><label>Amount<span class="req">*</span></label><input class="input" type="number" min="0" step="any" id="pAmount" value="' + balance + '"/>' +
-      '<span class="error hidden" id="pAmountErr">Enter an amount greater than zero.</span></div>' +
-      '<div class="form-grid">' +
-        '<div class="field"><label>Date</label><input class="input" type="date" id="pDate" value="' + MFG.todayISO() + '"/></div>' +
-        '<div class="field"><label>Method</label><select class="input" id="pMethod">' +
-          ["Bank Transfer", "Credit Card", "Cash", "Check", "PayPal", "Other"].map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("") +
-        "</select></div>" +
-      "</div>" +
-      '<div class="field"><label>Note</label><textarea class="input" id="pNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>';
-
-    MFGUI.openModal({
-      title: "Record Payment",
-      body: body,
-      footer: '<button class="btn btn-ghost" id="cancelModalBtn">Cancel</button><button class="btn btn-primary" id="saveBtn">Record Payment</button>',
-      onMount: function (root, close) {
-        root.querySelector("#cancelModalBtn").addEventListener("click", close);
-        root.querySelector("#saveBtn").addEventListener("click", function () {
-          var amount = Number(root.querySelector("#pAmount").value);
-          if (!amount || amount <= 0) {
-            root.querySelector("#pAmount").classList.add("has-error");
-            root.querySelector("#pAmountErr").classList.remove("hidden");
-            return;
-          }
-          MFG.recordPayment({
-            invoiceId: existing.id,
-            amount: amount,
-            date: root.querySelector("#pDate").value || MFG.todayISO(),
-            method: root.querySelector("#pMethod").value,
-            note: root.querySelector("#pNote").value.trim() || undefined,
-          });
-          MFGUI.toast("Payment recorded.");
-          close();
-          data = MFG.getData();
-          existing = data.invoices.find(function (i) { return i.id === id; });
-          render();
-        });
-      },
-    });
-  }
-
-  function openApplyCreditModal() {
-    var candidates = openCreditNotesForCustomer();
-    if (!candidates.length) { MFGUI.toast("This customer has no open credit notes.", "error"); return; }
-    var totals = currentTotals();
-    var balance = MFG.round2(totals.total - paidAmount() - creditApplied());
-    var body =
-      '<div class="field"><label>Credit note</label><select class="input" id="cnSelect">' +
-        candidates.map(function (cn) {
-          return '<option value="' + cn.id + '">' + MFGUI.escapeHtml(cn.reason || "Credit") + " — " + MFG.formatCurrency(MFG.remainingCredit(cn)) + " remaining</option>";
-        }).join("") +
-      "</select></div>" +
-      '<p class="text-tertiary" style="font-size:12px;">Invoice balance due: <strong style="color:var(--text);">' + MFG.formatCurrency(balance, state.currency) + "</strong></p>" +
-      '<div class="field"><label>Amount to apply<span class="req">*</span></label><input class="input" type="number" min="0" step="any" id="cnAmount" value="' + Math.min(balance, MFG.remainingCredit(candidates[0])) + '"/>' +
-      '<span class="error hidden" id="cnAmountErr">Enter a valid amount.</span></div>';
-
-    MFGUI.openModal({
-      title: "Apply Credit Note",
-      body: body,
-      footer: '<button class="btn btn-ghost" id="cancelModalBtn">Cancel</button><button class="btn btn-primary" id="saveBtn">Apply Credit</button>',
-      onMount: function (root, close) {
-        root.querySelector("#cancelModalBtn").addEventListener("click", close);
-        root.querySelector("#saveBtn").addEventListener("click", function () {
-          var cnId = root.querySelector("#cnSelect").value;
-          var amount = Number(root.querySelector("#cnAmount").value);
-          var res = MFG.applyCreditNote(cnId, existing.id, amount);
-          if (!res.ok) {
-            root.querySelector("#cnAmountErr").textContent = res.error;
-            root.querySelector("#cnAmountErr").classList.remove("hidden");
-            return;
-          }
-          MFGUI.toast("Credit applied to this invoice.");
-          close();
-          data = MFG.getData();
-          existing = data.invoices.find(function (i) { return i.id === id; });
-          render();
-        });
-      },
     });
   }
 
