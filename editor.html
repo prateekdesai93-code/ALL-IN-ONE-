@@ -414,9 +414,12 @@ textarea.input { resize: vertical; min-height: 72px; }
 @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ---------- Toasts ---------- */
+/* Bottom-right, not top-right: the topbar's own action button (e.g. "New
+   Production Order") lives at top-right too, so a toast firing right
+   after a click there used to land directly on top of it. */
 .toast-root {
-  position: fixed; top: 16px; right: 16px; z-index: 200;
-  display: flex; flex-direction: column; gap: 8px;
+  position: fixed; bottom: 16px; right: 16px; z-index: 200;
+  display: flex; flex-direction: column-reverse; gap: 8px;
   max-width: 320px;
 }
 .toast {
@@ -618,19 +621,19 @@ table.table a:hover { text-decoration: underline; }
 .summary-row.success { color: var(--success); }
 .summary-row.balance { font-weight: 700; color: var(--text); }
 
-/* ---------- Sticky editor action bar ---------- */
+/* ---------- Editor action bar ---------- */
+/* Deliberately NOT position:sticky. It used to stick to the bottom of
+   the viewport with a negative bottom margin pulling it up into the
+   content area — on a short invoice (little to scroll), that meant the
+   bar sat permanently on top of the last card (Notes), blocking clicks
+   into it. A normal in-flow bar can never cover anything above it. */
 .editor-actionbar {
-  position: sticky; bottom: 0; left: 0; right: 0;
-  background: rgba(0,0,0,0.92);
-  backdrop-filter: blur(6px);
-  border-top: 1px solid var(--border);
-  padding: 14px 0;
-  margin: 24px -32px -56px;
-  padding-left: 32px; padding-right: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-top: 4px;
   display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
-}
-@media (max-width: 768px) {
-  .editor-actionbar { margin: 18px -18px -48px; padding-left: 18px; padding-right: 18px; }
 }
 
 /* ---------- Section card heading ---------- */
@@ -956,6 +959,14 @@ table.table a:hover { text-decoration: underline; }
   function round2(n) {
     return Math.round((n + Number.EPSILON) * 100) / 100;
   }
+  // Display-only: caps a quantity to at most 2 decimal places and drops
+  // trailing zeros (5 stays "5", 5.5 stays "5.5", floating-point noise
+  // like 5.6699999999999999 becomes "5.67"). Used everywhere a stock,
+  // BOM, or line-item quantity is rendered — never on values still being
+  // computed with, only at the point of display.
+  function formatQty(n) {
+    return String(round2(Number(n) || 0));
+  }
 
   // ---------- items (materials + finished goods, one catalog) ----------
   // A single catalog keeps the UI to one Products page (a type filter,
@@ -1275,7 +1286,7 @@ table.table a:hover { text-decoration: underline; }
 
   // ---------- customers ----------
   function addCustomer(input) {
-    var rec = Object.assign({}, input, { id: uid(), createdAt: nowISO() });
+    var rec = Object.assign({ priceOverrides: [] }, input, { id: uid(), createdAt: nowISO() });
     data.customers.unshift(rec);
     persist();
     return rec;
@@ -1289,6 +1300,18 @@ table.table a:hover { text-decoration: underline; }
   function deleteCustomer(id) {
     data.customers = data.customers.filter(function (x) { return x.id !== id; });
     persist();
+  }
+  // Customer-specific selling prices — a sparse list of {itemId, price}
+  // overrides on the customer record (customers created before this
+  // feature exists just have no priceOverrides array, hence the `|| []`
+  // everywhere this is read). Returns null when this customer has no
+  // override for that item, so callers can fall back to the item's
+  // normal sellPrice.
+  function customerPriceForItem(customerId, itemId) {
+    var c = data.customers.find(function (x) { return x.id === customerId; });
+    if (!c) return null;
+    var match = (c.priceOverrides || []).find(function (o) { return o.itemId === itemId; });
+    return match ? match.price : null;
   }
 
   // ---------- invoices ----------
@@ -1570,6 +1593,7 @@ table.table a:hover { text-decoration: underline; }
     isPastDue: isPastDue,
     initials: initials,
     round2: round2,
+    formatQty: formatQty,
     isStorageDegraded: function () { return storageDegraded; },
 
     findItem: findItem,
@@ -1602,6 +1626,7 @@ table.table a:hover { text-decoration: underline; }
     addCustomer: addCustomer,
     updateCustomer: updateCustomer,
     deleteCustomer: deleteCustomer,
+    customerPriceForItem: customerPriceForItem,
 
     nextInvoiceNumber: nextInvoiceNumber,
     addInvoice: addInvoice,
@@ -1898,7 +1923,7 @@ table.table a:hover { text-decoration: underline; }
   // the picker on "— custom line —" makes it a plain service/fee line
   // that never touches stock. `readOnly` renders a static, non-
   // interactive summary instead (used once an invoice has been sent).
-  function createLineItemsEditor(container, items, currency, products, readOnly) {
+  function createLineItemsEditor(container, items, currency, products, readOnly, getPriceForItem) {
     var state = {
       items: (items && items.length ? items : [{ id: MFG.uid(), productId: null, description: "", quantity: 1, rate: 0 }]).map(function (it) {
         return Object.assign({}, it);
@@ -1920,7 +1945,7 @@ table.table a:hover { text-decoration: underline; }
     function productOptionsHtml(selectedId) {
       var opts = '<option value="">— custom line —</option>';
       opts += activeProducts.map(function (p) {
-        var label = p.name + " (" + p.sku + ") — " + MFG.formatCurrency(p.sellPrice, state.currency) + ", " + p.stockQty + " in stock";
+        var label = p.name + " (" + p.sku + ") — " + MFG.formatCurrency(p.sellPrice, state.currency) + ", " + MFG.formatQty(p.stockQty) + " in stock";
         return '<option value="' + p.id + '"' + (selectedId === p.id ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
       }).join("");
       return opts;
@@ -1934,7 +1959,7 @@ table.table a:hover { text-decoration: underline; }
       var p = (products || []).find(function (x) { return x.id === it.productId; });
       if (!p) return '<span class="line-item-stock-hint" style="color:var(--danger);">Item deleted</span>';
       var short = p.stockQty < (Number(it.quantity) || 0);
-      return '<span class="line-item-stock-hint"' + (short ? ' style="color:var(--danger);"' : "") + ">" + p.stockQty + " in stock" + (short ? " — not enough" : "") + "</span>";
+      return '<span class="line-item-stock-hint"' + (short ? ' style="color:var(--danger);"' : "") + ">" + MFG.formatQty(p.stockQty) + " in stock" + (short ? " — not enough" : "") + "</span>";
     }
 
     // Wraps one field's label + control so the mobile breakpoint below
@@ -1951,7 +1976,7 @@ table.table a:hover { text-decoration: underline; }
         return (
           '<div class="line-item-row line-item-row-readonly" data-row="' + it.id + '">' +
             fieldWrapper("Description", escapeHtml(it.description || "—") + (it.productId ? '<div class="line-item-stock-hint">' + stockHint(it) + "</div>" : "")) +
-            fieldWrapper("Qty", String(it.quantity)) +
+            fieldWrapper("Qty", MFG.formatQty(it.quantity)) +
             fieldWrapper("Rate", MFG.formatCurrency(it.rate, state.currency)) +
             '<div class="line-item-amount line-item-field" data-amount><span class="line-item-field-label">Amount</span><span class="line-item-amount-value">' + amountText(it) + "</span></div>" +
             "<div></div>" +
@@ -2004,7 +2029,7 @@ table.table a:hover { text-decoration: underline; }
                 var p = (products || []).find(function (x) { return x.id === pid; });
                 if (p) {
                   it.description = p.name;
-                  it.rate = p.sellPrice;
+                  it.rate = (typeof getPriceForItem === "function") ? getPriceForItem(pid, p.sellPrice) : p.sellPrice;
                   var descInput = rowEl.querySelector('[data-field="description"]');
                   if (descInput) descInput.value = it.description;
                   var rateInput = rowEl.querySelector('[data-field="rate"]');
@@ -2063,6 +2088,7 @@ table.table a:hover { text-decoration: underline; }
   function createBomEditor(container, bomLines, materials) {
     var state = {
       lines: (bomLines || []).map(function (l) { return Object.assign({}, l); }),
+      onChange: null,
     };
 
     // `materials` is fixed for the life of this editor instance (one
@@ -2074,9 +2100,16 @@ table.table a:hover { text-decoration: underline; }
     function materialOptionsHtml(selectedId) {
       var opts = '<option value="">Choose a material…</option>';
       opts += activeMaterials.map(function (m) {
-        return '<option value="' + m.id + '"' + (selectedId === m.id ? " selected" : "") + ">" + escapeHtml(m.name + " (" + m.sku + ") — " + m.stockQty + " " + m.unit + " in stock") + "</option>";
+        return '<option value="' + m.id + '"' + (selectedId === m.id ? " selected" : "") + ">" + escapeHtml(m.name + " (" + m.sku + ") — " + MFG.formatQty(m.stockQty) + " " + m.unit + " in stock, " + MFG.formatCurrency(m.costPrice) + "/" + m.unit) + "</option>";
       }).join("");
       return opts;
+    }
+
+    function estimatedCost() {
+      return state.lines.reduce(function (sum, l) {
+        var m = (materials || []).find(function (x) { return x.id === l.materialId; });
+        return sum + (m ? m.costPrice * (Number(l.qtyPerUnit) || 0) : 0);
+      }, 0);
     }
 
     function rowHtml(line, idx) {
@@ -2089,6 +2122,14 @@ table.table a:hover { text-decoration: underline; }
       );
     }
 
+    function costFooterHtml() {
+      var complete = state.lines.length && state.lines.every(function (l) { return l.materialId; });
+      if (!state.lines.length) return "";
+      return '<p class="hint bom-cost-footer" style="margin-top:8px;">' +
+        (complete ? "Estimated material cost per unit: <strong style=\"color:var(--text);\">" + escapeHtml(MFG.formatCurrency(estimatedCost())) + "</strong> — auto-fills the Cost price field above." : "Pick a material on every line to see the estimated cost.") +
+        "</p>";
+    }
+
     function render() {
       if (!state.lines.length) {
         container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;margin-bottom:10px;">No materials added yet — this item has no Bill of Materials, so Production can\'t make it. Add at least one material below.</p>' +
@@ -2097,7 +2138,94 @@ table.table a:hover { text-decoration: underline; }
         container.innerHTML =
           '<div class="bom-head"><span>Material</span><span>Qty per unit made</span><span></span></div>' +
           state.lines.map(rowHtml).join("") +
-          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="bomAddBtn">' + ICONS.plus + " Add material</button>";
+          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="bomAddBtn">' + ICONS.plus + " Add material</button>" +
+          costFooterHtml();
+      }
+      bind();
+    }
+
+    function updateFooterInPlace() {
+      var footer = container.querySelector(".bom-cost-footer");
+      if (footer) footer.outerHTML = costFooterHtml();
+    }
+
+    function bind() {
+      container.querySelectorAll("[data-idx]").forEach(function (rowEl) {
+        var idx = Number(rowEl.getAttribute("data-idx"));
+        rowEl.querySelectorAll("[data-field]").forEach(function (input) {
+          var isSelect = input.tagName === "SELECT";
+          input.addEventListener(isSelect ? "change" : "input", function () {
+            var field = input.getAttribute("data-field");
+            state.lines[idx][field] = field === "qtyPerUnit" ? Number(input.value) || 0 : input.value;
+            // A material select swap can change every row's option list
+            // (nothing here depends on that today, but keeps this in step
+            // with the invoice line-items editor's pattern) — safe to
+            // re-render fully. The qty input fires on every keystroke, so
+            // it only patches the cost footer text in place; a full
+            // render() there would rebuild the DOM mid-keystroke and throw
+            // focus out of the field.
+            if (isSelect) render(); else updateFooterInPlace();
+            if (state.onChange) state.onChange(state.lines);
+          });
+        });
+        var removeBtn = rowEl.querySelector("[data-remove]");
+        if (removeBtn) removeBtn.addEventListener("click", function () { state.lines.splice(idx, 1); render(); if (state.onChange) state.onChange(state.lines); });
+      });
+      var addBtn = container.querySelector("#bomAddBtn");
+      if (addBtn) addBtn.addEventListener("click", function () { state.lines.push({ materialId: "", qtyPerUnit: 1 }); render(); if (state.onChange) state.onChange(state.lines); });
+    }
+
+    render();
+
+    return {
+      getLines: function () { return state.lines.filter(function (l) { return l.materialId; }); },
+      onChange: function (fn) { state.onChange = fn; },
+    };
+  }
+
+  // ---------- Customer-specific pricing editor (Customers page) ----------
+  // A sparse list of {itemId, price} overrides against the finished-goods
+  // catalog, edited on a customer's own record. When an override exists
+  // for a given customer + item, the invoice line-items editor (above)
+  // uses it instead of that item's normal sellPrice the moment the item
+  // is picked on a line — see MFG.customerPriceForItem in store.js.
+  function createPriceOverridesEditor(container, overrides, finishedGoods) {
+    var state = {
+      lines: (overrides || []).map(function (o) { return Object.assign({}, o); }),
+    };
+    var items = finishedGoods || [];
+
+    function itemOptionsHtml(selectedId) {
+      var opts = '<option value="">Choose an item…</option>';
+      opts += items.map(function (it) {
+        return '<option value="' + it.id + '"' + (selectedId === it.id ? " selected" : "") + ">" + escapeHtml(it.name + " (" + it.sku + ") — normally " + MFG.formatCurrency(it.sellPrice)) + "</option>";
+      }).join("");
+      return opts;
+    }
+
+    function rowHtml(line, idx) {
+      return (
+        '<div class="bom-row" data-idx="' + idx + '">' +
+          '<select class="input" data-field="itemId" aria-label="Item">' + itemOptionsHtml(line.itemId) + "</select>" +
+          '<input class="input" type="number" min="0" step="any" data-field="price" value="' + line.price + '" aria-label="Custom price"/>' +
+          '<button type="button" class="btn-icon" data-remove aria-label="Remove price override">' + ICONS.trash + "</button>" +
+        "</div>"
+      );
+    }
+
+    function render() {
+      if (!items.length) {
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;">Add a finished good on the Products page first, then come back here to give this customer a special price on it.</p>';
+        return;
+      }
+      if (!state.lines.length) {
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;margin-bottom:10px;">No custom prices for this customer — every item uses its normal sell price on their invoices.</p>' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="poAddBtn">' + ICONS.plus + " Add a custom price</button>";
+      } else {
+        container.innerHTML =
+          '<div class="bom-head"><span>Item</span><span>Their price</span><span></span></div>' +
+          state.lines.map(rowHtml).join("") +
+          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="poAddBtn">' + ICONS.plus + " Add a custom price</button>";
       }
       bind();
     }
@@ -2109,20 +2237,20 @@ table.table a:hover { text-decoration: underline; }
           var evt = input.tagName === "SELECT" ? "change" : "input";
           input.addEventListener(evt, function () {
             var field = input.getAttribute("data-field");
-            state.lines[idx][field] = field === "qtyPerUnit" ? Number(input.value) || 0 : input.value;
+            state.lines[idx][field] = field === "price" ? Number(input.value) || 0 : input.value;
           });
         });
         var removeBtn = rowEl.querySelector("[data-remove]");
         if (removeBtn) removeBtn.addEventListener("click", function () { state.lines.splice(idx, 1); render(); });
       });
-      var addBtn = container.querySelector("#bomAddBtn");
-      if (addBtn) addBtn.addEventListener("click", function () { state.lines.push({ materialId: "", qtyPerUnit: 1 }); render(); });
+      var addBtn = container.querySelector("#poAddBtn");
+      if (addBtn) addBtn.addEventListener("click", function () { state.lines.push({ itemId: "", price: 0 }); render(); });
     }
 
     render();
 
     return {
-      getLines: function () { return state.lines.filter(function (l) { return l.materialId; }); },
+      getLines: function () { return state.lines.filter(function (l) { return l.itemId; }); },
     };
   }
 
@@ -2148,49 +2276,18 @@ table.table a:hover { text-decoration: underline; }
     );
   }
 
-  // ---------- lazy CDN script loading (used for the Excel export, so
-  // pages that never touch it don't pay for the download) ----------
-  var XLSX_SCRIPT = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-  var loadedScripts = {};
-  function loadScript(src) {
-    if (loadedScripts[src]) return loadedScripts[src];
-    loadedScripts[src] = new Promise(function (resolve, reject) {
-      var existing = document.querySelector('script[data-src="' + src + '"]');
-      if (existing) { existing.addEventListener("load", resolve); existing.addEventListener("error", reject); return; }
-      var s = document.createElement("script");
-      s.src = src;
-      s.setAttribute("data-src", src);
-      s.onload = resolve;
-      s.onerror = function () { reject(new Error("Failed to load " + src)); };
-      document.head.appendChild(s);
-    });
-    return loadedScripts[src];
-  }
+  // ---------- Excel export ----------
+  // Built entirely locally by lib/xlsx-writer.js (inlined only into the
+  // settings page, which is the only page that needs it) — no CDN, so
+  // this works with zero network access instead of failing with
+  // "check your internet connection" whenever the SheetJS CDN is
+  // unreachable (corporate firewalls, ad blockers, offline use, or —
+  // as in this app's own build/test sandbox — no internet at all).
   function downloadWorkbook(sheetName, rows, filename) {
     return downloadWorkbookMulti([{ name: sheetName, rows: rows }], filename);
   }
-  function autoSizeColumns(rows) {
-    if (!rows.length) return undefined;
-    var keys = Object.keys(rows[0]);
-    return keys.map(function (k) {
-      var maxLen = rows.reduce(function (m, r) {
-        var v = r[k];
-        return Math.max(m, String(v == null ? "" : v).length);
-      }, k.length);
-      return { wch: Math.min(Math.max(maxLen + 2, 10), 48) };
-    });
-  }
   function downloadWorkbookMulti(sheets, filename) {
-    return loadScript(XLSX_SCRIPT).then(function () {
-      var wb = global.XLSX.utils.book_new();
-      sheets.forEach(function (sheet) {
-        var rows = sheet.rows || [];
-        var ws = global.XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
-        if (rows.length) ws["!cols"] = autoSizeColumns(rows);
-        global.XLSX.utils.book_append_sheet(wb, ws, String(sheet.name).slice(0, 31));
-      });
-      global.XLSX.writeFile(wb, filename);
-    });
+    return global.XLSXWriter.downloadWorkbookMulti(sheets, filename);
   }
 
   // ---------- printable document window ----------
@@ -2348,11 +2445,11 @@ table.table a:hover { text-decoration: underline; }
     productionStatusBadge: productionStatusBadge,
     createLineItemsEditor: createLineItemsEditor,
     createBomEditor: createBomEditor,
+    createPriceOverridesEditor: createPriceOverridesEditor,
     kanbanBoardHtml: kanbanBoardHtml,
     el: el,
     qs: qs,
     BUILD_DATE: BUILD_DATE,
-    loadScript: loadScript,
     downloadWorkbook: downloadWorkbook,
     downloadWorkbookMulti: downloadWorkbookMulti,
     openPrintWindow: openPrintWindow,
@@ -2547,7 +2644,7 @@ table.table a:hover { text-decoration: underline; }
 
         '<div class="card section-card">' +
           "<h2>Line Items</h2>" +
-          (draft ? '<p class="text-secondary" style="font-size:12px;margin-top:-8px;margin-bottom:12px;">Pick an item to auto-fill its price and see live stock — or leave it as a custom line for a one-off fee or service.</p>' : "") +
+          (draft ? '<p class="text-secondary" style="font-size:12px;margin-top:-8px;margin-bottom:12px;">Pick an item to auto-fill its price and see live stock — or leave it as a custom line for a one-off fee or service. Pick the customer above first if they have a custom price on file (set on their Customers page profile).</p>' : "") +
           '<span class="error hidden" id="fItemsErr" style="display:block;margin-bottom:10px;">Add at least one line item.</span>' +
           '<div id="lineItemsContainer"></div>' +
         "</div>" +
@@ -2578,7 +2675,18 @@ table.table a:hover { text-decoration: underline; }
         "</div>" +
       "</div>";
 
-    lineItemsEditor = MFGUI.createLineItemsEditor(document.getElementById("lineItemsContainer"), state.items, state.currency, data.items.filter(function (it) { return it.type === "finished"; }), !draft);
+    lineItemsEditor = MFGUI.createLineItemsEditor(
+      document.getElementById("lineItemsContainer"),
+      state.items,
+      state.currency,
+      data.items.filter(function (it) { return it.type === "finished"; }),
+      !draft,
+      function (itemId, defaultPrice) {
+        if (!state.customerId) return defaultPrice;
+        var override = MFG.customerPriceForItem(state.customerId, itemId);
+        return override == null ? defaultPrice : override;
+      }
+    );
     if (draft) {
       lineItemsEditor.onChange(function (items) {
         state.items = items;
@@ -2718,7 +2826,7 @@ table.table a:hover { text-decoration: underline; }
           existing = data.invoices.find(function (i) { return i.id === id; });
           if (!sendRes.ok) { showShortages(sendRes.shortages); render(); return; }
           MFGUI.toast("Invoice sent and stock updated.");
-          maybeOfferEmail(sendRes.invoice);
+          offerPostSendActions(sendRes.invoice);
           render();
           return;
         }
@@ -2728,25 +2836,58 @@ table.table a:hover { text-decoration: underline; }
         var sendRes = MFG.sendInvoice(existing.id);
         if (!sendRes.ok) { showShortages(sendRes.shortages); data = MFG.getData(); existing = data.invoices.find(function (i) { return i.id === id; }); render(); return; }
         MFGUI.toast("Invoice sent and stock updated.");
-        maybeOfferEmail(sendRes.invoice);
+        offerPostSendActions(sendRes.invoice);
         data = MFG.getData();
         existing = data.invoices.find(function (i) { return i.id === id; });
         render();
       });
     }
 
-    function maybeOfferEmail(invoice) {
+    // Deliberately NOT automatic: this used to redirect the whole tab to
+    // a mailto: link on a timer right after sending, with no confirmation.
+    // On a machine with no default mail app configured, that redirect can
+    // sit there waiting on an OS-level "choose an app" prompt — which
+    // looks exactly like the page freezing. Showing an explicit modal
+    // instead means sending an invoice never has a surprise side effect,
+    // and it's honest about what a browser can and can't do: mailto:
+    // opens a blank compose window with no way to attach a file (no web
+    // page can attach files to it — that's a browser/OS limit, not
+    // something this app can work around), so the PDF has to be
+    // downloaded and attached by hand either way.
+    function offerPostSendActions(invoice) {
       var c = customer();
-      if (!c || !c.email) return;
-      var totals = MFG.computeTotals(invoice);
-      var subject = encodeURIComponent("Invoice " + invoice.number + " from " + data.settings.businessName);
-      var body = encodeURIComponent(
-        "Hi " + c.name + ",\n\nPlease find invoice " + invoice.number + " for " + MFG.formatCurrency(totals.total, invoice.currency) +
-        ", due " + invoice.dueDate + ".\n\nA printable copy is available from the Invoices page (use Print / Save as PDF and attach it here).\n\nThank you!\n" + data.settings.businessName
-      );
-      window.setTimeout(function () {
-        window.location.href = "mailto:" + c.email + "?subject=" + subject + "&body=" + body;
-      }, 300);
+      var body =
+        '<p class="text-secondary" style="font-size:13px;">Invoice ' + MFGUI.escapeHtml(invoice.number) + " was sent and stock was updated." + "</p>" +
+        '<p class="text-tertiary" style="font-size:12px;">Browsers can\'t attach a file to an email automatically — download the PDF first, then attach it yourself in the email that opens.</p>';
+      MFGUI.openModal({
+        title: "Invoice Sent",
+        body: body,
+        footer:
+          '<button class="btn btn-secondary btn-sm" id="psPdfBtn">' + MFGUI.ICONS.print + " Download PDF</button>" +
+          (c && c.email ? '<button class="btn btn-secondary btn-sm" id="psEmailBtn">' + MFGUI.ICONS.mail + " Email " + MFGUI.escapeHtml(c.name) + "</button>" : "") +
+          '<button class="btn btn-primary btn-sm" id="psDoneBtn">Done</button>',
+        onMount: function (root, close) {
+          root.querySelector("#psDoneBtn").addEventListener("click", close);
+          root.querySelector("#psPdfBtn").addEventListener("click", function () {
+            MFGUI.printInvoice(invoice, c, data.settings, data.payments, data.creditNotes);
+          });
+          var emailBtn = root.querySelector("#psEmailBtn");
+          if (emailBtn) {
+            emailBtn.addEventListener("click", function () {
+              var totals = MFG.computeTotals(invoice);
+              var subject = encodeURIComponent("Invoice " + invoice.number + " from " + data.settings.businessName);
+              var mailBody = encodeURIComponent(
+                "Hi " + c.name + ",\n\nPlease find invoice " + invoice.number + " for " + MFG.formatCurrency(totals.total, invoice.currency) +
+                ", due " + invoice.dueDate + ".\n\n(Attach the PDF you just downloaded before sending.)\n\nThank you!\n" + data.settings.businessName
+              );
+              // window.open, not location.href — opens the mail app/tab
+              // without navigating this one away, so there's nothing here
+              // for a missing mail handler to hang or lose work on.
+              window.open("mailto:" + c.email + "?subject=" + subject + "&body=" + mailBody, "_blank");
+            });
+          }
+        },
+      });
     }
 
     var payBtn = document.getElementById("payBtn");
