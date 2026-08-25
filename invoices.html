@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Invoices · Manufacturing &amp; Invoicing Manager</title>
+<meta name="description" content="Track invoices, balances, credit applied, and payment status." />
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwMDAwMDAiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDMiIGZvbnQtZmFtaWx5PSItYXBwbGUtc3lzdGVtLFNlZ29lIFVJLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlM8L3RleHQ+Cjwvc3ZnPgo=" type="image/svg+xml" />
+<style>
+/* =========================================================
+   Property Management System — Design System
+   Pure black & white. No build step, no frameworks, no blue.
+   ========================================================= */
+
+:root {
+  --bg: #000000;
+  --surface: #000000;
+  --surface-2: #0e0e0e;
+  --surface-hover: #1a1a1a;
+  --border: #262626;
+  --border-strong: #404040;
+  --text: #ffffff;
+  --text-secondary: #a8a8a8;
+  --text-tertiary: #707070;
+
+  --accent: #ffffff;
+  --accent-soft: rgba(255, 255, 255, 0.1);
+  --accent-text: #ffffff;
+  --accent-contrast: #000000;
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.14);
+  --warning: #facc15;
+  --warning-soft: rgba(250, 204, 21, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+
+  --radius-lg: 16px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.85);
+  --accent-glow: rgba(255, 255, 255, 0.28);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sidebar-w: 248px;
+}
+
+/* Light theme — still pure black & white, just inverted. Toggle in
+   Settings → Theme sets data-theme="light" on <html>. */
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f2f2f2;
+  --surface-hover: #e6e6e6;
+  --border: #dcdcdc;
+  --border-strong: #bfbfbf;
+  --text: #000000;
+  --text-secondary: #4d4d4d;
+  --text-tertiary: #767676;
+
+  --accent: #000000;
+  --accent-soft: rgba(0, 0, 0, 0.08);
+  --accent-text: #000000;
+  --accent-contrast: #ffffff;
+
+  --success: #15803d;
+  --success-soft: rgba(21, 128, 61, 0.12);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.12);
+  --danger: #b91c1c;
+  --danger-soft: rgba(185, 28, 28, 0.12);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.2);
+  --accent-glow: rgba(0, 0, 0, 0.18);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.5;
+}
+a { color: inherit; }
+button { font-family: inherit; }
+h1, h2, h3, p { margin: 0; }
+::selection { background: var(--accent-soft); color: var(--text); }
+
+img { max-width: 100%; display: block; }
+
+/* ---------- Layout ---------- */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  z-index: 40;
+  transition: transform 0.25s ease;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 20px;
+}
+.brand-mark {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-contrast); font-weight: 700; font-size: 15px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px -4px var(--accent-glow);
+}
+.brand-text { min-width: 0; }
+.brand-title { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-sub { font-size: 11px; color: var(--text-tertiary); }
+
+.nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.nav-link {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-link svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.9; }
+.nav-link:hover { background: var(--surface-hover); color: var(--text); }
+.nav-link.active { background: var(--accent-soft); color: var(--accent-text); }
+
+.sidebar-footer {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  padding: 10px 12px 2px;
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 35;
+}
+
+/* ---------- Storage-degraded banner ---------- */
+/* Shown when a write to localStorage has failed (store.js flips
+   MFG.isStorageDegraded() and calls MFGUI.showStorageBanner()) — the
+   change only made it into an in-memory fallback and will be lost on
+   refresh/close unless the visitor exports a backup. Reuses the app's
+   existing danger/red token, no new color introduced. */
+.storage-banner {
+  position: sticky; top: 0; left: 0; right: 0;
+  z-index: 45;
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-bottom: 1px solid var(--danger);
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+.storage-banner a { color: inherit; text-decoration: underline; font-weight: 700; }
+
+.mobile-topbar {
+  display: none;
+  position: sticky; top: 0;
+  align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 30;
+}
+.mobile-menu-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 32px 0;
+}
+.topbar h1 { font-size: 20px; font-weight: 650; letter-spacing: -0.015em; }
+.topbar .sub { margin-top: 3px; font-size: 13px; color: var(--text-secondary); }
+.topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.content {
+  padding: 20px 32px 56px;
+  flex: 1;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+  padding: 8px 14px;
+  text-decoration: none;
+}
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Safety net: any inline SVG icon not covered by a more specific rule
+   below still needs an explicit size, or Chromium can collapse it to
+   0x0 inside auto-sized flex containers (a real, confirmed bug — not
+   theoretical). Specific rules after this one win via normal cascade
+   order/specificity, so this only fills gaps. */
+svg { width: 16px; height: 16px; flex-shrink: 0; }
+.mobile-menu-btn svg { width: 20px; height: 20px; }
+.btn-icon svg { width: 16px; height: 16px; }
+.card-link svg { width: 14px; height: 14px; }
+.stat-card .icon-wrap svg { width: 18px; height: 18px; }
+.empty .icon-wrap svg { width: 22px; height: 22px; }
+.lock-mark svg { width: 20px; height: 20px; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: var(--accent-contrast); box-shadow: 0 6px 18px -8px var(--accent-glow); }
+.btn-primary:hover:not(:disabled) { filter: brightness(0.9); }
+.btn-secondary { background: var(--surface-2); border-color: var(--border-strong); color: var(--text); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-hover); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-sm { padding: 6px 11px; font-size: 12.5px; }
+.btn-icon { padding: 7px; border-radius: var(--radius-sm); background: transparent; border: none; color: var(--text-secondary); cursor: pointer; display: inline-flex; }
+.btn-icon:hover { background: var(--danger-soft); color: var(--danger); }
+.btn-icon.neutral:hover { background: var(--surface-hover); color: var(--text); }
+
+/* ---------- Cards / stats ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.card-header h2 { font-size: 13.5px; font-weight: 650; }
+.card-link { font-size: 12px; font-weight: 600; color: var(--accent-text); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.card-link:hover { text-decoration: underline; }
+.card-body { padding: 20px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.stat-card .icon-wrap {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--text-secondary);
+}
+.stat-card.tone-accent .icon-wrap { background: var(--accent-soft); color: var(--accent-text); }
+.stat-card.tone-danger .icon-wrap { background: var(--danger-soft); color: var(--danger); }
+.stat-card .value { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.stat-card .label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; }
+.stat-card .sub { font-size: 11px; color: var(--text-tertiary); }
+
+/* ---------- Grid helpers ---------- */
+.grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.flex-col { display: flex; flex-direction: column; gap: 6px; }
+.divider-list > * + * { border-top: 1px solid var(--border); }
+
+/* ---------- List rows ---------- */
+.row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px;
+}
+.row .title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.row .meta { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+/* ---------- Pills ---------- */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  border: 1px solid transparent;
+}
+.pill-success { background: var(--success-soft); color: var(--success); }
+.pill-warning { background: var(--warning-soft); color: var(--warning); }
+.pill-danger { background: var(--danger-soft); color: var(--danger); }
+.pill-neutral { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border-strong); }
+.pill-accent { background: var(--accent-soft); color: var(--accent-text); }
+
+/* ---------- Forms ---------- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.field label .req { color: var(--danger); margin-left: 2px; }
+.field .hint { font-size: 11px; color: var(--text-tertiary); }
+.field .error { font-size: 11.5px; color: var(--danger); }
+.input, select.input, textarea.input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input.has-error { border-color: var(--danger); }
+textarea.input { resize: vertical; min-height: 72px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.single { grid-template-columns: 1fr; }
+
+/* ---------- Filters / tabs ---------- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chip:hover { background: var(--surface-hover); }
+.chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+
+/* ---------- Empty state ---------- */
+.empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; padding: 40px 20px;
+  color: var(--text-secondary);
+}
+.empty .icon-wrap {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--surface-2); color: var(--text-tertiary);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+}
+.empty h3 { font-size: 14px; font-weight: 650; color: var(--text); }
+.empty p { font-size: 12.5px; max-width: 320px; }
+
+/* ---------- Modal ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(4, 7, 11, 0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.15s ease;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 480px;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-2);
+  animation: slideUp 0.18s ease;
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-header h3 { font-size: 14.5px; font-weight: 650; }
+.modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------- Toasts ---------- */
+.toast-root {
+  position: fixed; top: 16px; right: 16px; z-index: 200;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 320px;
+}
+.toast {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: var(--shadow-2);
+  animation: slideUp 0.18s ease;
+}
+.toast.error { border-left-color: var(--danger); }
+.toast.info { border-left-color: var(--text-tertiary); }
+
+/* ---------- Accent swatches ---------- */
+.swatch-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch {
+  width: 40px; height: 40px; border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.swatch:hover { transform: scale(1.06); }
+.swatch.active { border-color: var(--text); }
+
+/* ---------- Skeleton ---------- */
+.skeleton { background: var(--surface-2); border-radius: var(--radius); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* ---------- Utility ---------- */
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 14px; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.min-w-0 { min-width: 0; }
+.hidden { display: none !important; }
+.logo-preview {
+  width: 64px; height: 64px; border-radius: var(--radius);
+  border: 1px solid var(--border-strong); background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+}
+.logo-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+/* ---------- Lock screen (access-code gate) ---------- */
+html:not(.unlocked) #app-shell,
+html:not(.unlocked) .mobile-topbar {
+  display: none !important;
+}
+.lock-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+  padding: 20px;
+}
+.lock-card {
+  width: 100%; max-width: 360px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  text-align: center;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: var(--shadow-2);
+}
+.lock-mark {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 18px;
+  margin: 0 auto 4px;
+}
+.lock-card h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.lock-card p.lock-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: -8px; }
+.lock-card .lock-error {
+  display: none;
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: -6px;
+}
+.lock-card .lock-error.show { display: block; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); box-shadow: var(--shadow-2); }
+  body.sidebar-open .sidebar { transform: translateX(0); }
+  body.sidebar-open .sidebar-backdrop { display: block; }
+  .main { margin-left: 0; }
+  .mobile-topbar { display: flex; }
+  .topbar { padding: 18px 18px 0; flex-wrap: wrap; }
+  .content { padding: 16px 18px 48px; }
+  .topbar-actions .btn span.long { display: none; }
+}
+
+/* =========================================================
+   Invoice Generator — additional components
+   (tables, line-item editor, editor summary) built on top of
+   the design system above. No new colors introduced.
+   ========================================================= */
+
+/* ---------- Data table ---------- */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+table.table { width: 100%; border-collapse: collapse; min-width: 720px; font-size: 13px; }
+table.table thead tr { background: var(--surface-2); border-bottom: 1px solid var(--border); }
+table.table th { text-align: left; padding: 11px 16px; font-weight: 600; font-size: 11.5px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.02em; }
+table.table th.num, table.table td.num { text-align: right; }
+table.table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.table tbody tr:last-child td { border-bottom: none; }
+table.table tbody tr:hover { background: var(--surface-hover); }
+table.table a { color: var(--text); font-weight: 600; text-decoration: none; }
+table.table a:hover { text-decoration: underline; }
+.table-actions { display: flex; justify-content: flex-end; gap: 2px; }
+
+/* ---------- Filter chips row already covered by .chip-row / .chip ---------- */
+
+/* ---------- Line items editor ---------- */
+.line-items { display: flex; flex-direction: column; gap: 8px; }
+.line-items-head {
+  display: grid; grid-template-columns: 1fr 70px 110px 110px 32px; gap: 10px;
+  padding: 0 2px; font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+}
+.line-item-row {
+  display: grid; grid-template-columns: 1fr 70px 110px 110px 32px; gap: 10px; align-items: center;
+}
+/* Editable rows carry one extra column (the item picker) that the
+   read-only summary rows don't — give them their own 6-column template
+   instead of overflowing the 5-column one above. */
+.line-items-head-editable,
+.line-item-row-editable {
+  grid-template-columns: 180px 1fr 70px 110px 110px 32px;
+}
+.line-item-amount { text-align: right; font-size: 13px; font-weight: 600; padding-right: 4px; }
+.line-item-field { min-width: 0; }
+.line-item-field-label { display: none; }
+.add-line-btn {
+  align-self: flex-start; margin-top: 2px;
+  border: 1px dashed var(--border-strong); background: transparent; color: var(--text-secondary);
+  padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.add-line-btn:hover { border-color: var(--accent); color: var(--text); }
+.add-line-btn svg { width: 14px; height: 14px; }
+
+/* Below ~700px a 5-6 column grid doesn't fit a phone screen, and letting
+   it overflow-scroll (like .table-wrap) would make the app's core
+   editing workflow — typing invoice line items — miserable. Reflow each
+   row into a labeled vertical card instead; the stock hint stays right
+   under the description field where it already sits. */
+@media (max-width: 700px) {
+  .line-items-head { display: none; }
+  .line-item-row,
+  .line-item-row-editable,
+  .line-item-row-readonly {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px 44px 14px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    position: relative;
+  }
+  .line-item-field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+  .line-item-amount {
+    text-align: left;
+    padding-right: 0;
+    padding-top: 4px;
+    border-top: 1px dashed var(--border);
+  }
+  .line-item-amount-value { font-size: 15px; }
+  .line-item-row [data-remove] {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+}
+
+/* ---------- Totals summary ---------- */
+.summary-list { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.summary-row { display: flex; justify-content: space-between; color: var(--text-secondary); }
+.summary-row.total { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--text); }
+.summary-row.success { color: var(--success); }
+.summary-row.balance { font-weight: 700; color: var(--text); }
+
+/* ---------- Sticky editor action bar ---------- */
+.editor-actionbar {
+  position: sticky; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--border);
+  padding: 14px 0;
+  margin: 24px -32px -56px;
+  padding-left: 32px; padding-right: 32px;
+  display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+  .editor-actionbar { margin: 18px -18px -48px; padding-left: 18px; padding-right: 18px; }
+}
+
+/* ---------- Section card heading ---------- */
+.section-card { padding: 20px; }
+.section-card h2 { font-size: 13.5px; font-weight: 650; margin-bottom: 14px; }
+.max-width-editor { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.max-width-form { max-width: 720px; }
+
+/* ---------- BOM (Bill of Materials) editor — Products page ---------- */
+.bom-head {
+  display: grid; grid-template-columns: 1fr 160px 32px; gap: 10px;
+  padding: 0 2px 6px; font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+}
+.bom-row {
+  display: grid; grid-template-columns: 1fr 160px 32px; gap: 10px; align-items: center;
+  margin-bottom: 8px;
+}
+@media (max-width: 640px) {
+  .bom-head { display: none; }
+  .bom-row { grid-template-columns: 1fr 100px 32px; }
+}
+
+/* ---------- Segmented control (Simple/Advanced production mode, etc.) ---------- */
+.segmented {
+  display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 3px; gap: 3px; background: var(--surface-2);
+}
+.segmented button {
+  border: none; background: transparent; color: var(--text-secondary);
+  padding: 7px 16px; border-radius: calc(var(--radius-sm) - 3px); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+}
+.segmented button.active { background: var(--accent); color: var(--accent-contrast); }
+.segmented button:not(.active):hover { color: var(--text); }
+
+/* ---------- Kanban board — Advanced production mode ---------- */
+.kanban-board {
+  display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 14px;
+  overflow-x: auto; align-items: start;
+}
+@media (max-width: 900px) {
+  .kanban-board { grid-template-columns: repeat(4, 260px); }
+}
+.kanban-col {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; min-height: 160px;
+}
+.kanban-col-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 14px; border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary);
+}
+.kanban-count {
+  background: var(--surface-hover); color: var(--text-tertiary); border-radius: 999px;
+  padding: 1px 8px; font-size: 11px; font-weight: 700;
+}
+.kanban-col-body { padding: 10px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.kanban-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 13px; font-size: 12.5px; cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.kanban-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.kanban-card .kc-title { font-weight: 650; font-size: 13px; margin-bottom: 3px; }
+.kanban-card .kc-meta { color: var(--text-tertiary); font-size: 11.5px; margin-bottom: 8px; }
+.kanban-card .kc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.kanban-empty { color: var(--text-tertiary); font-size: 12px; text-align: center; padding: 18px 8px; }
+
+/* ---------- Item type toggle (Products page: Materials / Finished Goods) ---------- */
+.type-badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 999px; }
+.type-badge.material { background: var(--surface-hover); color: var(--text-secondary); }
+.type-badge.finished { background: var(--accent-soft); color: var(--accent-text); }
+
+</style>
+</head>
+<body data-page="invoices">
+<div id="app-shell"></div>
+<div class="toast-root" id="toast-root"></div>
+<div id="modal-root"></div>
+
+<script>
+/* =========================================================
+   Manufacturing & Invoicing Manager — Access Code Gate
+   ---------------------------------------------------------
+   HOW TO SET YOUR OWN PASSWORD:
+   Change the text between the quotes on the next line to
+   whatever code you want to give this customer, then save
+   this file and re-upload it (this exact edit must be made
+   in EVERY .html file if you're using the single-file
+   version — see the README for the one-line find & replace).
+   ========================================================= */
+  var ACCESS_CODE = "mfg2026";
+/* =========================================================
+   IMPORTANT — read this before you rely on it:
+   This is a simple front-door lock, not real security. This
+   app has no server, so the code above lives inside the page
+   itself — anyone who opens their browser's "View Page
+   Source" or Developer Tools can read it. It's enough to stop
+   casual visitors and people who don't have the code you gave
+   them, but do not use it to protect anything truly sensitive,
+   and assume a technical person could bypass it if they tried.
+   ========================================================= */
+
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "app_unlocked_v1";
+
+  function isUnlocked() {
+    try { return window.localStorage.getItem(STORAGE_KEY) === "1"; } catch (e) { return false; }
+  }
+  function markUnlocked() {
+    document.documentElement.classList.add("unlocked");
+    try { window.localStorage.setItem(STORAGE_KEY, "1"); } catch (e) {}
+  }
+
+  function showLockScreen() {
+    var overlay = document.createElement("div");
+    overlay.className = "lock-screen";
+    overlay.innerHTML =
+      '<div class="lock-card">' +
+        '<div class="lock-mark">&#128274;</div>' +
+        "<h1>Enter Access Code</h1>" +
+        '<p class="lock-sub">Ask whoever set you up with this app for your access code.</p>' +
+        '<input type="password" class="input" id="gateInput" placeholder="Access code" autocomplete="off" />' +
+        '<p class="lock-error" id="gateError">That code isn\'t right. Try again.</p>' +
+        '<button class="btn btn-primary" id="gateBtn" style="width:100%;justify-content:center;">Unlock</button>' +
+      "</div>";
+    document.body.appendChild(overlay);
+
+    var input = overlay.querySelector("#gateInput");
+    var err = overlay.querySelector("#gateError");
+
+    function attempt() {
+      if (input.value === ACCESS_CODE) {
+        markUnlocked();
+        overlay.remove();
+      } else {
+        err.classList.add("show");
+        input.value = "";
+        input.focus();
+      }
+    }
+
+    overlay.querySelector("#gateBtn").addEventListener("click", attempt);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") attempt();
+    });
+    setTimeout(function () { input.focus(); }, 60);
+  }
+
+  if (isUnlocked()) {
+    document.documentElement.classList.add("unlocked");
+  } else {
+    document.documentElement.classList.remove("unlocked");
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", showLockScreen);
+    } else {
+      showLockScreen();
+    }
+  }
+})();
+
+</script>
+<script>
+/* =========================================================
+   Manufacturing & Invoicing Manager — Data Layer
+   Plain JavaScript, no build step. All data lives in this
+   browser's localStorage. Loaded before every other script.
+
+   This app is the suite's 6th product: one shared catalog of
+   raw materials AND finished goods, a Bill of Materials on
+   each finished item, a production engine that turns materials
+   into finished stock, and customers/invoicing/payments/credit
+   notes on top — so a small manufacturer can run the whole
+   "buy materials -> make product -> sell product" loop in one
+   place instead of stitching together separate tools.
+   ========================================================= */
+
+(function (global) {
+  "use strict";
+
+  var STORAGE_KEY = "mfg_data_v1";
+  var SCHEMA_VERSION = 1;
+
+  var DEFAULT_SETTINGS = {
+    businessName: "Your Business",
+    logoDataUrl: null,
+    email: "",
+    phone: "",
+    address: "",
+    website: "",
+    currency: "USD",
+    customSymbol: "",
+    theme: "dark",
+    defaultTaxRate: 0,
+    taxPresets: [
+      { id: "preset-no-tax", label: "No tax", rate: 0 },
+      { id: "preset-5", label: "5%", rate: 5 },
+      { id: "preset-10", label: "10%", rate: 10 },
+      { id: "preset-15", label: "15%", rate: 15 },
+      { id: "preset-20", label: "20%", rate: 20 },
+    ],
+    paymentInstructions: "Payment due within the terms stated above. Thank you for your business.",
+    invoicePrefix: "INV",
+    nextInvoiceSeq: 1001,
+    defaultReorderThreshold: 10,
+    // "simple" = one Produce button, atomic, no separate workflow.
+    // "advanced" = Work Orders with a Planned/In Progress/Done board.
+    // Both modes ultimately call the exact same completeProductionOrder()
+    // to touch stock — see the Production section below for why that
+    // single-path discipline matters.
+    productionMode: "simple",
+  };
+
+  function emptyData() {
+    return {
+      version: SCHEMA_VERSION,
+      items: [],
+      productionOrders: [],
+      customers: [],
+      invoices: [],
+      payments: [],
+      creditNotes: [],
+      movements: [],
+      settings: Object.assign({}, DEFAULT_SETTINGS),
+    };
+  }
+
+  // ---- in-memory fallback in case localStorage is unavailable
+  // (private browsing, disabled storage, etc.)
+  var memoryFallback = null;
+  // Flips true the moment a write to localStorage fails (quota exceeded,
+  // storage disabled, etc.) so the UI can warn the visitor that their
+  // latest change only made it into the in-memory fallback above and will
+  // be lost on refresh/close unless they export a backup. Flips back to
+  // false the next time a write actually succeeds.
+  var storageDegraded = false;
+
+  function safeGetItem() {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      return memoryFallback;
+    }
+  }
+  function safeSetItem(value) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, value);
+      storageDegraded = false;
+    } catch (e) {
+      memoryFallback = value;
+      storageDegraded = true;
+      if (window.MFGUI && window.MFGUI.showStorageBanner) window.MFGUI.showStorageBanner();
+    }
+  }
+
+  function normalize(parsed) {
+    var base = emptyData();
+    return Object.assign({}, base, parsed, {
+      settings: Object.assign({}, DEFAULT_SETTINGS, parsed.settings || {}, {
+        taxPresets: (parsed.settings && parsed.settings.taxPresets) || DEFAULT_SETTINGS.taxPresets,
+      }),
+      items: parsed.items || [],
+      productionOrders: parsed.productionOrders || [],
+      customers: parsed.customers || [],
+      invoices: parsed.invoices || [],
+      payments: parsed.payments || [],
+      creditNotes: parsed.creditNotes || [],
+      movements: parsed.movements || [],
+    });
+  }
+
+  function load() {
+    var raw = safeGetItem();
+    if (!raw) return emptyData();
+    try {
+      var parsed = JSON.parse(raw);
+      return normalize(parsed);
+    } catch (e) {
+      console.warn("MFG: could not parse saved data, starting fresh.", e);
+      return emptyData();
+    }
+  }
+
+  var data = load();
+
+  function persist() {
+    safeSetItem(JSON.stringify(data));
+  }
+
+  // ---------- helpers ----------
+  function uid() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+  function nowISO() {
+    return new Date().toISOString();
+  }
+  function todayISO() {
+    var d = new Date();
+    var tzOffset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - tzOffset).toISOString().slice(0, 10);
+  }
+  function addDays(iso, days) {
+    var d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+  function daysBetween(fromISO, toISO) {
+    var a = new Date(fromISO + "T00:00:00").getTime();
+    var b = new Date(toISO + "T00:00:00").getTime();
+    return Math.round((b - a) / 86400000);
+  }
+  function isPastDue(dueISO) {
+    return daysBetween(todayISO(), dueISO) < 0;
+  }
+  function initials(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  function round2(n) {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+  }
+
+  // ---------- items (materials + finished goods, one catalog) ----------
+  // A single catalog keeps the UI to one Products page (a type filter,
+  // not a second whole page to maintain) and means an item that's both
+  // bought in bulk and resold in smaller units doesn't need two records.
+  // Only "finished" items carry a `bom` (Bill of Materials): an array of
+  // {materialId, qtyPerUnit} lines, i.e. how much of each material one
+  // unit of this finished item consumes. Only "finished" items carry a
+  // sellPrice; only invoiced/sold items need one.
+  function findItem(id) {
+    return data.items.find(function (x) { return x.id === id; });
+  }
+  function materialItems() {
+    return data.items.filter(function (x) { return x.type === "material"; });
+  }
+  function finishedItems() {
+    return data.items.filter(function (x) { return x.type === "finished"; });
+  }
+  function addItem(input) {
+    var rec = Object.assign({ active: true, bom: [] }, input, { id: uid(), createdAt: nowISO() });
+    data.items.push(rec);
+    persist();
+    return rec;
+  }
+  function updateItem(id, patch) {
+    var it = findItem(id);
+    if (!it) return;
+    Object.assign(it, patch);
+    persist();
+  }
+  function deleteItem(id) {
+    // Items are removed outright, but past production/invoice/movement
+    // history that references this item is kept intact (shows as
+    // "Deleted item" wherever it's referenced) — same policy as every
+    // other app in this suite.
+    data.items = data.items.filter(function (x) { return x.id !== id; });
+    // Also strip the deleted item from any other finished item's BOM,
+    // so a stale materialId never silently breaks a shortage check.
+    data.items = data.items.map(function (x) {
+      if (!x.bom || !x.bom.length) return x;
+      var filtered = x.bom.filter(function (line) { return line.materialId !== id; });
+      return filtered.length === x.bom.length ? x : Object.assign({}, x, { bom: filtered });
+    });
+    persist();
+  }
+
+  // ---------- stock movements (materials or finished goods) ----------
+  function restock(itemId, quantity, note) {
+    var now = nowISO();
+    var movement = { id: uid(), itemId: itemId, type: "restock", quantityChange: quantity, reason: note || "Restock", date: todayISO(), createdAt: now };
+    data.movements.unshift(movement);
+    data.items = data.items.map(function (x) {
+      return x.id === itemId ? Object.assign({}, x, { stockQty: x.stockQty + quantity }) : x;
+    });
+    persist();
+  }
+  function adjustStock(itemId, quantityChange, reason) {
+    var now = nowISO();
+    var movement = { id: uid(), itemId: itemId, type: "adjustment", quantityChange: quantityChange, reason: reason, date: todayISO(), createdAt: now };
+    data.movements.unshift(movement);
+    data.items = data.items.map(function (x) {
+      return x.id === itemId ? Object.assign({}, x, { stockQty: Math.max(0, x.stockQty + quantityChange) }) : x;
+    });
+    persist();
+  }
+
+  // ---------- production ----------
+  // The one genuinely new engine in this app. Deliberately mirrors the
+  // Stock & Invoicing Manager invoice-lifecycle discipline that a real
+  // bug (and fix) proved out: stock is mutated in exactly ONE function,
+  // completeProductionOrder(), regardless of whether the caller is the
+  // Simple mode's single "Produce" button or the Advanced mode's Kanban
+  // "Mark Done" action. A production order that can't be completed (not
+  // enough materials) is never lost — it just stays in whatever status
+  // it was already safely persisted at (planned/in_progress), exactly
+  // like a stock-short invoice in Stock & Invoicing Manager stays a
+  // saved draft rather than vanishing.
+  function bomNeeded(bom, quantity) {
+    var needed = {};
+    (bom || []).forEach(function (line) {
+      needed[line.materialId] = (needed[line.materialId] || 0) + (Number(line.qtyPerUnit) || 0) * quantity;
+    });
+    return needed;
+  }
+  function materialShortages(bom, quantity) {
+    var needed = bomNeeded(bom, quantity);
+    var shortages = [];
+    Object.keys(needed).forEach(function (mid) {
+      var m = findItem(mid);
+      if (!m) return; // deleted material — nothing meaningful to check
+      if (m.stockQty < needed[mid]) {
+        shortages.push({ materialId: mid, name: m.name, unit: m.unit, needed: round2(needed[mid]), available: m.stockQty });
+      }
+    });
+    return shortages;
+  }
+  function findProductionOrder(id) {
+    return data.productionOrders.find(function (x) { return x.id === id; });
+  }
+  function createProductionOrder(itemId, quantity, note) {
+    var item = findItem(itemId);
+    if (!item || item.type !== "finished") return { ok: false, error: "Pick a finished-good item to produce." };
+    if (!quantity || quantity <= 0) return { ok: false, error: "Quantity must be greater than zero." };
+    var rec = {
+      id: uid(),
+      itemId: itemId,
+      quantity: quantity,
+      note: note || "",
+      status: "planned",
+      materialsUsed: null,
+      createdAt: nowISO(),
+      startedAt: null,
+      completedAt: null,
+      updatedAt: nowISO(),
+    };
+    data.productionOrders.unshift(rec);
+    persist();
+    return { ok: true, order: rec };
+  }
+  function startProductionOrder(id) {
+    var order = findProductionOrder(id);
+    if (!order) return { ok: false, error: "Production order not found." };
+    if (order.status !== "planned") return { ok: false, error: "Only planned orders can be started." };
+    order.status = "in_progress";
+    order.startedAt = nowISO();
+    order.updatedAt = nowISO();
+    persist();
+    return { ok: true, order: order };
+  }
+  // The single stock-mutating step: checks the finished item's BOM x
+  // quantity against current material stock, and only if every material
+  // has enough does it atomically deduct materials and add finished
+  // stock, logging one movement per material plus one for the finished
+  // item. Works from "planned" or "in_progress" (Simple mode never calls
+  // startProductionOrder at all — it goes straight from planned to done).
+  function completeProductionOrder(id) {
+    var order = findProductionOrder(id);
+    if (!order) return { ok: false, error: "Production order not found." };
+    if (order.status !== "planned" && order.status !== "in_progress") {
+      return { ok: false, error: "Only planned or in-progress orders can be completed." };
+    }
+    var item = findItem(order.itemId);
+    if (!item) return { ok: false, error: "The item being produced no longer exists." };
+    var shortages = materialShortages(item.bom, order.quantity);
+    if (shortages.length) return { ok: false, shortages: shortages };
+
+    var now = nowISO();
+    var needed = bomNeeded(item.bom, order.quantity);
+    var usedSnapshot = [];
+    var newMovements = [];
+    Object.keys(needed).forEach(function (mid) {
+      var m = findItem(mid);
+      var qty = round2(needed[mid]);
+      usedSnapshot.push({ materialId: mid, name: m ? m.name : "Deleted item", qty: qty });
+      newMovements.push({ id: uid(), itemId: mid, type: "production-consume", quantityChange: -qty, reason: "Production " + order.id.slice(0, 8), date: todayISO(), productionOrderId: order.id, createdAt: now });
+    });
+    newMovements.push({ id: uid(), itemId: item.id, type: "production-output", quantityChange: order.quantity, reason: "Production " + order.id.slice(0, 8), date: todayISO(), productionOrderId: order.id, createdAt: now });
+
+    data.movements = newMovements.concat(data.movements);
+    data.items = data.items.map(function (x) {
+      var m = newMovements.find(function (mv) { return mv.itemId === x.id; });
+      return m ? Object.assign({}, x, { stockQty: Math.max(0, x.stockQty + m.quantityChange) }) : x;
+    });
+
+    order.status = "done";
+    order.materialsUsed = usedSnapshot;
+    order.completedAt = now;
+    order.updatedAt = now;
+    persist();
+    return { ok: true, order: order };
+  }
+  // Convenience for Simple mode: create + complete in one call. If
+  // completion fails on a shortage, the order is still safely sitting
+  // as "planned" — nothing is lost, and Advanced mode's queue will show
+  // it waiting for materials, so switching modes never strands data.
+  function produceSimple(itemId, quantity, note) {
+    var created = createProductionOrder(itemId, quantity, note);
+    if (!created.ok) return created;
+    var completed = completeProductionOrder(created.order.id);
+    if (!completed.ok) return Object.assign({}, completed, { order: created.order });
+    return completed;
+  }
+  function cancelProductionOrder(id) {
+    var order = findProductionOrder(id);
+    if (!order) return;
+    if (order.status !== "planned" && order.status !== "in_progress") return;
+    order.status = "cancelled";
+    order.updatedAt = nowISO();
+    persist();
+  }
+  // Reverses a completed order's stock impact (restores materials from
+  // the saved snapshot, removes the finished-good quantity, floored at
+  // 0 defensively) before removing the record — mirrors how deleting a
+  // sent invoice restores the stock it deducted elsewhere in this suite.
+  function deleteProductionOrder(id) {
+    var order = findProductionOrder(id);
+    if (!order) return;
+    if (order.status === "done" && order.materialsUsed) {
+      var now = nowISO();
+      var reverseMovements = order.materialsUsed.map(function (u) {
+        return { id: uid(), itemId: u.materialId, type: "production-deleted", quantityChange: u.qty, reason: "Production order deleted", date: todayISO(), productionOrderId: order.id, createdAt: now };
+      });
+      reverseMovements.push({ id: uid(), itemId: order.itemId, type: "production-deleted", quantityChange: -order.quantity, reason: "Production order deleted", date: todayISO(), productionOrderId: order.id, createdAt: now });
+      data.movements = reverseMovements.concat(data.movements);
+      data.items = data.items.map(function (x) {
+        var m = reverseMovements.find(function (mv) { return mv.itemId === x.id; });
+        return m ? Object.assign({}, x, { stockQty: Math.max(0, x.stockQty + m.quantityChange) }) : x;
+      });
+    }
+    data.productionOrders = data.productionOrders.filter(function (x) { return x.id !== id; });
+    persist();
+  }
+
+  // ---------- invoice calculations ----------
+  function lineTotal(item) {
+    return round2((item.quantity || 0) * (item.rate || 0));
+  }
+  function subtotal(items) {
+    return round2((items || []).reduce(function (sum, it) { return sum + lineTotal(it); }, 0));
+  }
+  function discountAmount(sub, discountType, discountValue) {
+    if (!discountValue) return 0;
+    if (discountType === "percent") return round2((sub * discountValue) / 100);
+    return round2(Math.min(discountValue, sub));
+  }
+  function taxAmount(taxableBase, taxRate) {
+    return round2((taxableBase * (taxRate || 0)) / 100);
+  }
+  function computeTotals(invoice) {
+    var sub = subtotal(invoice.items);
+    var disc = discountAmount(sub, invoice.discountType, invoice.discountValue);
+    var taxable = Math.max(0, round2(sub - disc));
+    var tax = taxAmount(taxable, invoice.taxRate);
+    var total = round2(taxable + tax);
+    return { subtotal: sub, discount: disc, taxable: taxable, tax: tax, total: total };
+  }
+  function amountPaid(invoiceId, payments) {
+    return round2(
+      (payments || []).filter(function (p) { return p.invoiceId === invoiceId; }).reduce(function (sum, p) { return sum + p.amount; }, 0)
+    );
+  }
+  // Sums every credit-note application against this invoice, across all
+  // credit notes (a customer can apply more than one credit note to the
+  // same invoice, and one credit note can be split across invoices).
+  function creditAppliedForInvoice(invoiceId, creditNotes) {
+    var total = 0;
+    (creditNotes || []).forEach(function (cn) {
+      (cn.applications || []).forEach(function (a) {
+        if (a.invoiceId === invoiceId) total += a.amount;
+      });
+    });
+    return round2(total);
+  }
+  // `settled` = payments + credit applied. A credit note is a separate
+  // transaction from a payment (matches QuickBooks/Xero/Zoho Invoice —
+  // researched before building this), but for the purpose of "is this
+  // invoice paid off", both count toward closing the balance.
+  function derivedStatus(invoice, settled, total) {
+    if (invoice.status === "cancelled") return "cancelled";
+    if (invoice.status === "draft") return "draft";
+    if (settled >= total && total > 0) return "paid";
+    if (invoice.status === "sent" && isPastDue(invoice.dueDate) && settled < total) return "overdue";
+    if (settled > 0 && settled < total) return "partial";
+    return "sent";
+  }
+  function buildInvoiceRow(invoice, payments, creditNotes) {
+    var totals = computeTotals(invoice);
+    var paid = amountPaid(invoice.id, payments);
+    var creditApplied = creditAppliedForInvoice(invoice.id, creditNotes);
+    var settled = round2(paid + creditApplied);
+    var balance = round2(totals.total - settled);
+    var status = derivedStatus(invoice, settled, totals.total);
+    return { invoice: invoice, total: totals.total, paid: paid, creditApplied: creditApplied, balance: balance, status: status };
+  }
+  function buildInvoiceRows(invoices, payments, creditNotes) {
+    return (invoices || []).map(function (inv) { return buildInvoiceRow(inv, payments, creditNotes); });
+  }
+
+  // Sums requested quantity per finished item across an invoice's line
+  // items and reports any item that doesn't have enough stock on hand.
+  // Lines with no itemId (a free-text/service line) never touch stock.
+  function stockShortagesForInvoice(items) {
+    var needed = {};
+    (items || []).forEach(function (it) {
+      if (!it.productId) return;
+      needed[it.productId] = (needed[it.productId] || 0) + (Number(it.quantity) || 0);
+    });
+    var shortages = [];
+    Object.keys(needed).forEach(function (pid) {
+      var it = findItem(pid);
+      if (!it) return;
+      if (it.stockQty < needed[pid]) {
+        shortages.push({ productId: pid, name: it.name, unit: it.unit, needed: needed[pid], available: it.stockQty });
+      }
+    });
+    return shortages;
+  }
+  function applyStockForInvoice(invoice, sign, reasonPrefix) {
+    var now = nowISO();
+    var byItem = {};
+    (invoice.items || []).forEach(function (it) {
+      if (!it.productId) return;
+      byItem[it.productId] = (byItem[it.productId] || 0) + (Number(it.quantity) || 0);
+    });
+    var ids = Object.keys(byItem);
+    if (!ids.length) return;
+    var label = reasonPrefix + " " + (invoice.number || invoice.id.slice(0, 8));
+    var newMovements = ids.map(function (pid) {
+      return { id: uid(), itemId: pid, type: "invoice", quantityChange: sign * byItem[pid], reason: label, date: todayISO(), invoiceId: invoice.id, createdAt: now };
+    });
+    data.movements = newMovements.concat(data.movements);
+    data.items = data.items.map(function (x) {
+      var m = newMovements.find(function (mv) { return mv.itemId === x.id; });
+      return m ? Object.assign({}, x, { stockQty: Math.max(0, x.stockQty + m.quantityChange) }) : x;
+    });
+  }
+
+  // ---------- customers ----------
+  function addCustomer(input) {
+    var rec = Object.assign({}, input, { id: uid(), createdAt: nowISO() });
+    data.customers.unshift(rec);
+    persist();
+    return rec;
+  }
+  function updateCustomer(id, patch) {
+    var c = data.customers.find(function (x) { return x.id === id; });
+    if (!c) return;
+    Object.assign(c, patch);
+    persist();
+  }
+  function deleteCustomer(id) {
+    data.customers = data.customers.filter(function (x) { return x.id !== id; });
+    persist();
+  }
+
+  // ---------- invoices ----------
+  // Same Draft -> Sent -> Cancelled stock-safe lifecycle as Stock &
+  // Invoicing Manager: a draft never touches stock and is fully
+  // editable; sending atomically deducts finished-goods stock for every
+  // item-linked line, only if every line has enough; once sent, items
+  // are locked; cancelling/deleting a sent invoice restores stock.
+  function nextInvoiceNumber() {
+    var s = data.settings;
+    return s.invoicePrefix + "-" + s.nextInvoiceSeq;
+  }
+  function addInvoice(input) {
+    var wantsSend = input.status === "sent";
+    if (wantsSend) {
+      var shortages = stockShortagesForInvoice(input.items);
+      if (shortages.length) return { ok: false, shortages: shortages };
+    }
+    var now = nowISO();
+    var s = data.settings;
+    var number = input.number || (s.invoicePrefix + "-" + s.nextInvoiceSeq);
+    var bumpSeq = !input.number;
+    var rec = Object.assign({}, input, {
+      number: number,
+      id: uid(),
+      stockApplied: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    data.invoices.unshift(rec);
+    if (bumpSeq) data.settings.nextInvoiceSeq = s.nextInvoiceSeq + 1;
+    if (wantsSend) {
+      applyStockForInvoice(rec, -1, "Invoice");
+      rec.stockApplied = true;
+      rec.sentAt = now;
+    }
+    persist();
+    return { ok: true, invoice: rec };
+  }
+  function updateDraftInvoice(id, patch) {
+    var inv = data.invoices.find(function (x) { return x.id === id; });
+    if (!inv) return { ok: false, error: "Invoice not found." };
+    if (inv.status !== "draft") return { ok: false, error: "Only draft invoices can be edited." };
+    Object.assign(inv, patch, { updatedAt: nowISO() });
+    persist();
+    return { ok: true, invoice: inv };
+  }
+  function sendInvoice(id) {
+    var inv = data.invoices.find(function (x) { return x.id === id; });
+    if (!inv) return { ok: false, error: "Invoice not found." };
+    if (inv.status !== "draft") return { ok: false, error: "Only draft invoices can be sent." };
+    var shortages = stockShortagesForInvoice(inv.items);
+    if (shortages.length) return { ok: false, shortages: shortages };
+    applyStockForInvoice(inv, -1, "Invoice");
+    inv.status = "sent";
+    inv.stockApplied = true;
+    inv.sentAt = nowISO();
+    inv.updatedAt = nowISO();
+    persist();
+    return { ok: true, invoice: inv };
+  }
+  function cancelInvoice(id) {
+    var inv = data.invoices.find(function (x) { return x.id === id; });
+    if (!inv) return;
+    if (inv.stockApplied) {
+      applyStockForInvoice(inv, 1, "Invoice cancelled");
+      inv.stockApplied = false;
+    }
+    inv.status = "cancelled";
+    inv.updatedAt = nowISO();
+    persist();
+  }
+  function reopenInvoice(id) {
+    var inv = data.invoices.find(function (x) { return x.id === id; });
+    if (!inv) return;
+    inv.status = "draft";
+    inv.updatedAt = nowISO();
+    persist();
+  }
+  function deleteInvoice(id) {
+    var inv = data.invoices.find(function (x) { return x.id === id; });
+    if (inv && inv.stockApplied) applyStockForInvoice(inv, 1, "Invoice deleted");
+    data.invoices = data.invoices.filter(function (x) { return x.id !== id; });
+    data.payments = data.payments.filter(function (p) { return p.invoiceId !== id; });
+    // Strip any credit-note applications pointed at the deleted invoice,
+    // restoring that amount to the credit note's available balance.
+    data.creditNotes = data.creditNotes.map(function (cn) {
+      if (!cn.applications || !cn.applications.some(function (a) { return a.invoiceId === id; })) return cn;
+      var kept = cn.applications.filter(function (a) { return a.invoiceId !== id; });
+      return Object.assign({}, cn, { applications: kept, status: "open" });
+    });
+    persist();
+  }
+
+  // ---------- payments ----------
+  function recordPayment(input) {
+    var rec = Object.assign({}, input, { id: uid(), createdAt: nowISO() });
+    data.payments.unshift(rec);
+    persist();
+    return rec;
+  }
+  function deletePayment(id) {
+    data.payments = data.payments.filter(function (x) { return x.id !== id; });
+    persist();
+  }
+
+  // ---------- credit notes ----------
+  // Standalone (not required to reference any invoice at creation) —
+  // matches QuickBooks/Xero/Zoho Invoice, researched before building
+  // this. Issue a credit against a customer, then apply some or all of
+  // it to one or more of that customer's open invoices as a separate
+  // step. Editing/deleting is blocked once any amount has been applied,
+  // so a past application is never left pointing at numbers that no
+  // longer add up — keeps the model simple and always trustworthy.
+  var CREDIT_NOTE_REASONS = ["Discount", "Refund", "Damaged Goods", "Billing Correction", "Return", "Goodwill", "Other"];
+  function findCreditNote(id) {
+    return data.creditNotes.find(function (x) { return x.id === id; });
+  }
+  function remainingCredit(creditNote) {
+    var used = (creditNote.applications || []).reduce(function (sum, a) { return sum + a.amount; }, 0);
+    return round2(creditNote.amount - used);
+  }
+  function addCreditNote(input) {
+    var rec = Object.assign({}, input, { id: uid(), status: "open", applications: [], createdAt: nowISO() });
+    data.creditNotes.unshift(rec);
+    persist();
+    return rec;
+  }
+  function updateCreditNote(id, patch) {
+    var cn = findCreditNote(id);
+    if (!cn) return { ok: false, error: "Credit note not found." };
+    if (cn.applications && cn.applications.length) return { ok: false, error: "This credit note has already been applied and can't be edited. Delete an application first, or issue a new credit note instead." };
+    Object.assign(cn, patch);
+    persist();
+    return { ok: true, creditNote: cn };
+  }
+  function deleteCreditNote(id) {
+    var cn = findCreditNote(id);
+    if (!cn) return { ok: false, error: "Credit note not found." };
+    if (cn.applications && cn.applications.length) return { ok: false, error: "This credit note has already been applied and can't be deleted. Remove its applications first." };
+    data.creditNotes = data.creditNotes.filter(function (x) { return x.id !== id; });
+    persist();
+    return { ok: true };
+  }
+  // Caps the applied amount at both the credit note's remaining balance
+  // and the invoice's current balance due, so it's never possible to
+  // over-apply a credit or push an invoice into a negative balance.
+  function applyCreditNote(creditNoteId, invoiceId, amount) {
+    var cn = findCreditNote(creditNoteId);
+    if (!cn) return { ok: false, error: "Credit note not found." };
+    var invoice = data.invoices.find(function (x) { return x.id === invoiceId; });
+    if (!invoice) return { ok: false, error: "Invoice not found." };
+    if (invoice.status === "draft" || invoice.status === "cancelled") {
+      return { ok: false, error: "Credit can only be applied to a sent invoice." };
+    }
+    var remaining = remainingCredit(cn);
+    if (amount <= 0 || amount > remaining) {
+      return { ok: false, error: "Amount must be more than zero and no more than the remaining credit (" + remaining + ")." };
+    }
+    var row = buildInvoiceRow(invoice, data.payments, data.creditNotes);
+    if (amount > row.balance) {
+      return { ok: false, error: "Amount can't exceed this invoice's balance due (" + row.balance + ")." };
+    }
+    var application = { id: uid(), invoiceId: invoiceId, amount: round2(amount), date: todayISO() };
+    cn.applications = (cn.applications || []).concat([application]);
+    if (remainingCredit(cn) <= 0) cn.status = "closed";
+    persist();
+    return { ok: true, creditNote: cn };
+  }
+  function unapplyCreditNote(creditNoteId, applicationId) {
+    var cn = findCreditNote(creditNoteId);
+    if (!cn) return { ok: false, error: "Credit note not found." };
+    cn.applications = (cn.applications || []).filter(function (a) { return a.id !== applicationId; });
+    cn.status = "open";
+    persist();
+    return { ok: true, creditNote: cn };
+  }
+
+  // ---------- settings ----------
+  function updateSettings(patch) {
+    data.settings = Object.assign({}, data.settings, patch);
+    persist();
+  }
+  // Stored on settings.taxPresets. Always builds new arrays/objects
+  // rather than mutating in place, so a fresh install's default presets
+  // (shared object literal in DEFAULT_SETTINGS) are never accidentally
+  // edited through a live data reference.
+  function addTaxPreset(input) {
+    var rec = Object.assign({}, input, { id: uid() });
+    data.settings.taxPresets = (data.settings.taxPresets || []).concat([rec]);
+    persist();
+    return rec;
+  }
+  function updateTaxPreset(id, patch) {
+    data.settings.taxPresets = (data.settings.taxPresets || []).map(function (x) {
+      return x.id === id ? Object.assign({}, x, patch) : x;
+    });
+    persist();
+  }
+  function deleteTaxPreset(id) {
+    data.settings.taxPresets = (data.settings.taxPresets || []).filter(function (x) { return x.id !== id; });
+    persist();
+  }
+
+  // ---------- formatting ----------
+  var CURRENCY_META = {
+    USD: ["en-US", "$"], EUR: ["de-DE", "€"], GBP: ["en-GB", "£"], INR: ["en-IN", "₹"],
+    AUD: ["en-AU", "$"], CAD: ["en-CA", "$"], NZD: ["en-NZ", "$"], SGD: ["en-SG", "$"],
+    HKD: ["en-HK", "$"], JPY: ["ja-JP", "¥"], CNY: ["zh-CN", "¥"], KRW: ["ko-KR", "₩"],
+    CHF: ["de-CH", "CHF"], SEK: ["sv-SE", "kr"], NOK: ["nb-NO", "kr"], DKK: ["da-DK", "kr"],
+    PLN: ["pl-PL", "zł"], CZK: ["cs-CZ", "Kč"], HUF: ["hu-HU", "Ft"], RON: ["ro-RO", "lei"],
+    TRY: ["tr-TR", "₺"], RUB: ["ru-RU", "₽"], ZAR: ["en-ZA", "R"], NGN: ["en-NG", "₦"],
+    EGP: ["ar-EG", "E£"], KES: ["en-KE", "KSh"], AED: ["ar-AE", "د.إ"], SAR: ["ar-SA", "﷼"],
+    QAR: ["ar-QA", "﷼"], KWD: ["ar-KW", "د.ك"], ILS: ["he-IL", "₪"], THB: ["th-TH", "฿"],
+    IDR: ["id-ID", "Rp"], MYR: ["ms-MY", "RM"], PHP: ["en-PH", "₱"], VND: ["vi-VN", "₫"],
+    PKR: ["en-PK", "₨"], BDT: ["bn-BD", "৳"], LKR: ["en-LK", "₨"], NPR: ["ne-NP", "₨"],
+    BRL: ["pt-BR", "R$"], MXN: ["es-MX", "$"], ARS: ["es-AR", "$"], CLP: ["es-CL", "$"],
+    COP: ["es-CO", "$"], PEN: ["es-PE", "S/"], TWD: ["zh-TW", "NT$"],
+  };
+  function currencySymbol(code) {
+    var meta = CURRENCY_META[code];
+    return meta ? meta[1] : code;
+  }
+  function formatCurrency(amount, currency) {
+    var amt = amount || 0;
+    var customSymbol = data.settings && data.settings.customSymbol;
+    if (customSymbol) {
+      var numStr = Math.abs(amt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return (amt < 0 ? "-" : "") + customSymbol + numStr;
+    }
+    var cur = currency || (data.settings && data.settings.currency) || "USD";
+    var meta = CURRENCY_META[cur];
+    try {
+      return new Intl.NumberFormat((meta && meta[0]) || "en-US", { style: "currency", currency: cur, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amt);
+    } catch (e) {
+      return (amt < 0 ? "-" : "") + currencySymbol(cur) + Math.abs(amt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+  }
+  function formatDate(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso + "T00:00:00");
+    if (isNaN(d.getTime())) return "—";
+    return new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(d);
+  }
+  function formatDateTime(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
+  }
+
+  // ---------- backup / restore ----------
+  function exportData() {
+    return JSON.stringify(data, null, 2);
+  }
+  function importData(json) {
+    try {
+      var parsed = JSON.parse(json);
+      if (!parsed || typeof parsed !== "object") return { ok: false, error: "That file doesn't look like a valid backup." };
+      data = normalize(parsed);
+      persist();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: "Could not read that file. Make sure it's an unedited backup .json file." };
+    }
+  }
+  function resetAllData() {
+    data = emptyData();
+    persist();
+  }
+
+  global.MFG = {
+    getData: function () { return data; },
+    uid: uid,
+    nowISO: nowISO,
+    todayISO: todayISO,
+    addDays: addDays,
+    daysBetween: daysBetween,
+    isPastDue: isPastDue,
+    initials: initials,
+    round2: round2,
+    isStorageDegraded: function () { return storageDegraded; },
+
+    findItem: findItem,
+    materialItems: materialItems,
+    finishedItems: finishedItems,
+    addItem: addItem,
+    updateItem: updateItem,
+    deleteItem: deleteItem,
+
+    restock: restock,
+    adjustStock: adjustStock,
+    stockShortagesForInvoice: stockShortagesForInvoice,
+
+    materialShortages: materialShortages,
+    createProductionOrder: createProductionOrder,
+    startProductionOrder: startProductionOrder,
+    completeProductionOrder: completeProductionOrder,
+    produceSimple: produceSimple,
+    cancelProductionOrder: cancelProductionOrder,
+    deleteProductionOrder: deleteProductionOrder,
+    findProductionOrder: findProductionOrder,
+
+    computeTotals: computeTotals,
+    amountPaid: amountPaid,
+    creditAppliedForInvoice: creditAppliedForInvoice,
+    derivedStatus: derivedStatus,
+    buildInvoiceRow: buildInvoiceRow,
+    buildInvoiceRows: buildInvoiceRows,
+
+    addCustomer: addCustomer,
+    updateCustomer: updateCustomer,
+    deleteCustomer: deleteCustomer,
+
+    nextInvoiceNumber: nextInvoiceNumber,
+    addInvoice: addInvoice,
+    updateDraftInvoice: updateDraftInvoice,
+    sendInvoice: sendInvoice,
+    cancelInvoice: cancelInvoice,
+    reopenInvoice: reopenInvoice,
+    deleteInvoice: deleteInvoice,
+
+    recordPayment: recordPayment,
+    deletePayment: deletePayment,
+
+    CREDIT_NOTE_REASONS: CREDIT_NOTE_REASONS,
+    findCreditNote: findCreditNote,
+    remainingCredit: remainingCredit,
+    addCreditNote: addCreditNote,
+    updateCreditNote: updateCreditNote,
+    deleteCreditNote: deleteCreditNote,
+    applyCreditNote: applyCreditNote,
+    unapplyCreditNote: unapplyCreditNote,
+
+    updateSettings: updateSettings,
+    addTaxPreset: addTaxPreset,
+    updateTaxPreset: updateTaxPreset,
+    deleteTaxPreset: deleteTaxPreset,
+
+    formatCurrency: formatCurrency,
+    formatDate: formatDate,
+    formatDateTime: formatDateTime,
+    currencySymbol: currencySymbol,
+    CURRENCY_CODES: Object.keys(CURRENCY_META),
+
+    exportData: exportData,
+    importData: importData,
+    resetAllData: resetAllData,
+  };
+})(window);
+
+</script>
+<script>
+/* =========================================================
+   Manufacturing & Invoicing Manager — Shared UI Shell
+   Renders the sidebar/topbar, and provides modal, toast, the
+   item-aware line items editor, a Kanban board renderer for
+   production, print-by-print-window, Excel export, and small
+   render helpers used by every page script.
+   ========================================================= */
+
+(function (global) {
+  "use strict";
+
+  var BUILD_DATE = "2026-08-24";
+
+  var ICONS = {
+    dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+    products: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+    production: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M4 20V10l5 4v-4l5 4v-4l5 4v6"/><path d="M9 20v-3"/><path d="M14 20v-3"/></svg>',
+    customers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17.5" cy="7" r="2.6"/><path d="M15.8 13.6c2.6.5 4.6 2.7 4.7 5.9"/></svg>',
+    invoices: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l3 3v15H4V6l3-3Z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+    creditNote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l3 3v15H4V6l3-3Z"/><path d="M9 13h6"/></svg>',
+    payments: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg>',
+    reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+    settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/></svg>',
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3 6.5 9 6.5 9-6.5"/></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+    menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+    upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 10l6 6 6-6"/><path d="M4 20h16"/></svg>',
+    print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M6 17v4h12v-4"/></svg>',
+    wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18a2 2 0 0 1 2 2v2"/><path d="M3 7.5V18a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2H6a3 3 0 0 1 0-6h12"/><circle cx="16.5" cy="13.5" r="1.5"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+    pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg>',
+    ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m5.5 5.5 13 13"/></svg>',
+    rotateCcw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 17h.01"/></svg>',
+    alertTriangle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.7 18-8-14.3a2 2 0 0 0-3.4 0l-8 14.3A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    dollarSign: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    trending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    packagePlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16h6"/><path d="M19 13v6"/><path d="M21 10V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l1.5-.9"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>',
+    sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>',
+    flask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6l-6.5 9.5A1.5 1.5 0 0 0 4.7 21h14.6a1.5 1.5 0 0 0 1.2-2.5L14 9V3"/><path d="M7.5 15h9"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5v15l13-7.5Z"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  };
+
+  var NAV_ITEMS = [
+    { key: "dashboard", label: "Dashboard", href: "index.html", icon: ICONS.dashboard },
+    { key: "products", label: "Products", href: "products.html", icon: ICONS.products },
+    { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
+    { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
+    { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
+    { key: "credit-notes", label: "Credit Notes", href: "credit-notes.html", icon: ICONS.creditNote },
+    { key: "payments", label: "Payments", href: "payments.html", icon: ICONS.payments },
+    { key: "reports", label: "Reports", href: "reports.html", icon: ICONS.reports },
+    { key: "settings", label: "Settings", href: "settings.html", icon: ICONS.settings },
+  ];
+
+  function el(html) {
+    var t = document.createElement("template");
+    t.innerHTML = html.trim();
+    return t.content.firstElementChild;
+  }
+
+  function applyAccent() {
+    var settings = MFG.getData().settings;
+    document.documentElement.setAttribute("data-theme", settings.theme || "dark");
+  }
+
+  function qs(name) {
+    try {
+      return new URLSearchParams(window.location.search).get(name);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function renderShell(activeKey) {
+    applyAccent();
+    var navHtml = NAV_ITEMS.map(function (item) {
+      var isActive = item.key === activeKey;
+      return (
+        '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '">' +
+        item.icon + "<span>" + item.label + "</span></a>"
+      );
+    }).join("");
+
+    var shellHtml =
+      '<div class="storage-banner hidden" id="storageBanner" role="alert">' +
+        "⚠ Your browser couldn't save your last change — storage may be full or blocked. " +
+        '<a href="settings.html">Export a backup now</a> before doing anything else.' +
+      "</div>" +
+      '<div class="mobile-topbar">' +
+        '<button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">' + ICONS.menu + "</button>" +
+        '<strong style="font-size:14px;">Manufacturing &amp; Invoicing</strong>' +
+      "</div>" +
+      '<div class="app">' +
+        '<div class="sidebar-backdrop" id="sidebarBackdrop"></div>' +
+        '<aside class="sidebar" id="sidebar">' +
+          '<div class="brand"><div class="brand-mark">M</div><div class="brand-text"><div class="brand-title">Manufacturing &amp; Invoicing</div><div class="brand-sub">Make it, stock it, sell it</div></div></div>' +
+          '<nav class="nav">' + navHtml + "</nav>" +
+          '<div class="sidebar-footer">Build ' + BUILD_DATE + " · Local data only</div>" +
+        "</aside>" +
+        '<div class="main">' +
+          '<header class="topbar">' +
+            '<div><h1 id="pageTitle"></h1><p class="sub" id="pageSub"></p></div>' +
+            '<div class="topbar-actions" id="topbarActions"></div>' +
+          "</header>" +
+          '<div class="content" id="pageContent"></div>' +
+        "</div>" +
+      "</div>";
+
+    var root = document.getElementById("app-shell");
+    root.innerHTML = shellHtml;
+
+    var menuBtn = document.getElementById("mobileMenuBtn");
+    var backdrop = document.getElementById("sidebarBackdrop");
+    function closeMenu() { document.body.classList.remove("sidebar-open"); }
+    if (menuBtn) menuBtn.addEventListener("click", function () { document.body.classList.toggle("sidebar-open"); });
+    if (backdrop) backdrop.addEventListener("click", closeMenu);
+    document.querySelectorAll(".nav-link").forEach(function (a) { a.addEventListener("click", closeMenu); });
+
+    // A prior write to localStorage may have already failed (e.g. this
+    // navigation itself was the write that hit a full/blocked storage) —
+    // rebuild the shell already knowing that, rather than waiting for the
+    // next persist() to notice.
+    if (MFG.isStorageDegraded()) showStorageBanner();
+
+    return {
+      contentEl: document.getElementById("pageContent"),
+      setTitle: function (title, sub) {
+        document.getElementById("pageTitle").textContent = title;
+        document.getElementById("pageSub").textContent = sub || "";
+      },
+      setActions: function (html) {
+        document.getElementById("topbarActions").innerHTML = html;
+      },
+    };
+  }
+
+  // ---------- storage-degraded banner ----------
+  // Shown when a write to localStorage has failed (store.js's
+  // safeSetItem calls showStorageBanner() from its catch block) so the
+  // change silently only landed in the in-memory fallback and would be
+  // lost on refresh/close. Sticky and hard to miss on purpose.
+  function showStorageBanner() {
+    var bannerEl = document.getElementById("storageBanner");
+    if (bannerEl) bannerEl.classList.remove("hidden");
+  }
+  function hideStorageBanner() {
+    var bannerEl = document.getElementById("storageBanner");
+    if (bannerEl) bannerEl.classList.add("hidden");
+  }
+
+  // ---------- toast ----------
+  function toast(message, tone) {
+    var root = document.getElementById("toast-root");
+    if (!root) return;
+    var node = el('<div class="toast ' + (tone || "") + '">' + escapeHtml(message) + "</div>");
+    root.appendChild(node);
+    setTimeout(function () {
+      node.style.transition = "opacity 0.25s ease";
+      node.style.opacity = "0";
+      setTimeout(function () { node.remove(); }, 250);
+    }, 2600);
+  }
+
+  // ---------- modal ----------
+  function openModal(opts) {
+    var root = document.getElementById("modal-root");
+    var backdrop = el(
+      '<div class="modal-backdrop">' +
+        '<div class="modal" role="dialog" aria-modal="true"' + (opts.wide ? ' style="max-width:640px;"' : "") + '>' +
+          '<div class="modal-header"><h3>' + escapeHtml(opts.title) + '</h3><button class="btn-icon neutral" id="modalCloseBtn" aria-label="Close">' + ICONS.close + "</button></div>" +
+          '<div class="modal-body" id="modalBody"></div>' +
+          '<div class="modal-footer" id="modalFooter"></div>' +
+        "</div>" +
+      "</div>"
+    );
+    root.appendChild(backdrop);
+    var bodyEl = backdrop.querySelector("#modalBody");
+    var footerEl = backdrop.querySelector("#modalFooter");
+    if (opts.body instanceof Node) bodyEl.appendChild(opts.body);
+    else bodyEl.innerHTML = opts.body || "";
+    if (opts.footer instanceof Node) footerEl.appendChild(opts.footer);
+    else footerEl.innerHTML = opts.footer || "";
+
+    function close() { backdrop.remove(); }
+    backdrop.addEventListener("click", function (e) { if (e.target === backdrop) close(); });
+    backdrop.querySelector("#modalCloseBtn").addEventListener("click", close);
+
+    if (opts.onMount) opts.onMount(backdrop, close);
+    return { close: close, el: backdrop };
+  }
+
+  function confirmDialog(opts) {
+    openModal({
+      title: opts.title,
+      body: '<p class="text-secondary">' + escapeHtml(opts.description) + "</p>",
+      footer:
+        '<button class="btn btn-ghost" id="cdCancel">Cancel</button>' +
+        '<button class="btn ' + (opts.dangerless ? "btn-primary" : "btn-danger") + '" id="cdConfirm">' + escapeHtml(opts.confirmLabel || "Delete") + "</button>",
+      onMount: function (root, close) {
+        root.querySelector("#cdCancel").addEventListener("click", close);
+        root.querySelector("#cdConfirm").addEventListener("click", function () {
+          close();
+          opts.onConfirm();
+        });
+      },
+    });
+  }
+
+  // ---------- small helpers ----------
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  var STATUS_LABELS = { draft: "Draft", sent: "Sent", partial: "Partial", paid: "Paid", overdue: "Overdue", cancelled: "Cancelled" };
+  var STATUS_PILL_CLASS = { draft: "pill-neutral", sent: "pill-accent", partial: "pill-warning", paid: "pill-success", overdue: "pill-danger", cancelled: "pill-neutral" };
+  function statusBadge(status) {
+    var cls = STATUS_PILL_CLASS[status] || "pill-neutral";
+    var label = STATUS_LABELS[status] || status;
+    return '<span class="pill ' + cls + '">' + escapeHtml(label) + "</span>";
+  }
+
+  var PO_STATUS_LABELS = { planned: "Planned", in_progress: "In Progress", done: "Done", cancelled: "Cancelled" };
+  var PO_STATUS_PILL_CLASS = { planned: "pill-neutral", in_progress: "pill-warning", done: "pill-success", cancelled: "pill-neutral" };
+  function productionStatusBadge(status) {
+    var cls = PO_STATUS_PILL_CLASS[status] || "pill-neutral";
+    var label = PO_STATUS_LABELS[status] || status;
+    return '<span class="pill ' + cls + '">' + escapeHtml(label) + "</span>";
+  }
+
+  function emptyState(iconKey, title, desc, actionHtml) {
+    return (
+      '<div class="empty"><div class="icon-wrap">' + (ICONS[iconKey] || "") + "</div>" +
+      "<h3>" + escapeHtml(title) + "</h3><p>" + escapeHtml(desc) + "</p>" +
+      (actionHtml ? '<div class="mt-2">' + actionHtml + "</div>" : "") +
+      "</div>"
+    );
+  }
+
+  // ---------- item-aware line items editor (invoice line items) ----------
+  // Each row can optionally be tied to a catalog item (data-field
+  // "productId") — picking one auto-fills description + rate from that
+  // item's sell price and shows how much finished stock is on hand, but
+  // both description and rate stay directly editable afterward. Leaving
+  // the picker on "— custom line —" makes it a plain service/fee line
+  // that never touches stock. `readOnly` renders a static, non-
+  // interactive summary instead (used once an invoice has been sent).
+  function createLineItemsEditor(container, items, currency, products, readOnly) {
+    var state = {
+      items: (items && items.length ? items : [{ id: MFG.uid(), productId: null, description: "", quantity: 1, rate: 0 }]).map(function (it) {
+        return Object.assign({}, it);
+      }),
+      currency: currency,
+      onChange: null,
+    };
+
+    // Selectable options only ever come from active items, and `products`
+    // is fixed for the life of this editor instance — so the eligible
+    // list is filtered once here, not re-filtered from the full catalog
+    // inside productOptionsHtml on every row's render.
+    var activeProducts = (products || []).filter(function (p) { return p.active; });
+
+    function amountText(it) {
+      return MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.rate || 0)), state.currency);
+    }
+
+    function productOptionsHtml(selectedId) {
+      var opts = '<option value="">— custom line —</option>';
+      opts += activeProducts.map(function (p) {
+        var label = p.name + " (" + p.sku + ") — " + MFG.formatCurrency(p.sellPrice, state.currency) + ", " + p.stockQty + " in stock";
+        return '<option value="' + p.id + '"' + (selectedId === p.id ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
+      }).join("");
+      return opts;
+    }
+
+    // Looks up against the full (not active-filtered) product list, since
+    // a line item saved against a product that's since been deactivated
+    // should still show its real stock hint here, not "Item deleted".
+    function stockHint(it) {
+      if (!it.productId) return "";
+      var p = (products || []).find(function (x) { return x.id === it.productId; });
+      if (!p) return '<span class="line-item-stock-hint" style="color:var(--danger);">Item deleted</span>';
+      var short = p.stockQty < (Number(it.quantity) || 0);
+      return '<span class="line-item-stock-hint"' + (short ? ' style="color:var(--danger);"' : "") + ">" + p.stockQty + " in stock" + (short ? " — not enough" : "") + "</span>";
+    }
+
+    // Wraps one field's label + control so the mobile breakpoint below
+    // ~700px (see .line-item-field in styles.css) can show the label
+    // above the control when the row reflows from a grid into a stacked
+    // card. On wider screens the label stays hidden and the wrapper is
+    // just another grid column, so desktop layout is unaffected.
+    function fieldWrapper(labelText, innerHtml) {
+      return '<div class="line-item-field"><span class="line-item-field-label">' + escapeHtml(labelText) + "</span>" + innerHtml + "</div>";
+    }
+
+    function rowHtml(it) {
+      if (readOnly) {
+        return (
+          '<div class="line-item-row line-item-row-readonly" data-row="' + it.id + '">' +
+            fieldWrapper("Description", escapeHtml(it.description || "—") + (it.productId ? '<div class="line-item-stock-hint">' + stockHint(it) + "</div>" : "")) +
+            fieldWrapper("Qty", String(it.quantity)) +
+            fieldWrapper("Rate", MFG.formatCurrency(it.rate, state.currency)) +
+            '<div class="line-item-amount line-item-field" data-amount><span class="line-item-field-label">Amount</span><span class="line-item-amount-value">' + amountText(it) + "</span></div>" +
+            "<div></div>" +
+          "</div>"
+        );
+      }
+      return (
+        '<div class="line-item-row line-item-row-editable" data-row="' + it.id + '">' +
+          fieldWrapper("Item", '<select class="input" data-field="productId" aria-label="Item">' + productOptionsHtml(it.productId) + "</select>") +
+          fieldWrapper("Description",
+            '<input class="input" data-field="description" value="' + escapeHtml(it.description || "") + '" placeholder="Item or service description" aria-label="Item description"/>' +
+            (it.productId ? '<div class="line-item-stock-hint" data-stockhint>' + stockHint(it) + "</div>" : "")
+          ) +
+          fieldWrapper("Qty", '<input class="input" type="number" min="0" step="any" data-field="quantity" value="' + it.quantity + '" aria-label="Quantity"/>') +
+          fieldWrapper("Rate", '<input class="input" type="number" min="0" step="any" data-field="rate" value="' + it.rate + '" aria-label="Rate"/>') +
+          '<div class="line-item-amount line-item-field" data-amount><span class="line-item-field-label">Amount</span><span class="line-item-amount-value">' + amountText(it) + "</span></div>" +
+          '<button type="button" class="btn-icon" data-remove aria-label="Remove line item"' + (state.items.length === 1 ? " disabled" : "") + ">" + ICONS.trash + "</button>" +
+        "</div>"
+      );
+    }
+
+    function render() {
+      var headCols = readOnly
+        ? '<div class="line-items-head line-items-head-readonly"><span>Description</span><span>Qty</span><span>Rate</span><span style="text-align:right;">Amount</span><span></span></div>'
+        : '<div class="line-items-head line-items-head-editable"><span>Item</span><span>Description</span><span>Qty</span><span>Rate</span><span style="text-align:right;">Amount</span><span></span></div>';
+      container.innerHTML =
+        '<div class="line-items' + (readOnly ? " line-items-readonly" : "") + '">' +
+          headCols +
+          state.items.map(rowHtml).join("") +
+          (readOnly ? "" : '<button type="button" class="add-line-btn" id="addLineBtn">' + ICONS.plus + " Add line item</button>") +
+        "</div>";
+      if (!readOnly) bind();
+    }
+
+    function bind() {
+      container.querySelectorAll("[data-row]").forEach(function (rowEl) {
+        var id = rowEl.getAttribute("data-row");
+        rowEl.querySelectorAll("[data-field]").forEach(function (input) {
+          var evt = input.tagName === "SELECT" ? "change" : "input";
+          input.addEventListener(evt, function () {
+            var field = input.getAttribute("data-field");
+            var it = state.items.find(function (x) { return x.id === id; });
+            if (!it) return;
+            if (field === "description") {
+              it.description = input.value;
+            } else if (field === "productId") {
+              var pid = input.value || null;
+              it.productId = pid;
+              if (pid) {
+                var p = (products || []).find(function (x) { return x.id === pid; });
+                if (p) {
+                  it.description = p.name;
+                  it.rate = p.sellPrice;
+                  var descInput = rowEl.querySelector('[data-field="description"]');
+                  if (descInput) descInput.value = it.description;
+                  var rateInput = rowEl.querySelector('[data-field="rate"]');
+                  if (rateInput) rateInput.value = it.rate;
+                }
+              }
+              render();
+              if (state.onChange) state.onChange(state.items);
+              return;
+            } else {
+              it[field] = Number(input.value) || 0;
+            }
+            var amountEl = rowEl.querySelector(".line-item-amount-value");
+            if (amountEl) amountEl.textContent = amountText(it);
+            var hintEl = rowEl.querySelector("[data-stockhint]");
+            if (hintEl) hintEl.innerHTML = stockHint(it);
+            if (state.onChange) state.onChange(state.items);
+          });
+        });
+        var removeBtn = rowEl.querySelector("[data-remove]");
+        if (removeBtn) {
+          removeBtn.addEventListener("click", function () {
+            if (state.items.length === 1) return;
+            state.items = state.items.filter(function (x) { return x.id !== id; });
+            render();
+            if (state.onChange) state.onChange(state.items);
+          });
+        }
+      });
+      var addBtn = container.querySelector("#addLineBtn");
+      if (addBtn) {
+        addBtn.addEventListener("click", function () {
+          state.items.push({ id: MFG.uid(), productId: null, description: "", quantity: 1, rate: 0 });
+          render();
+          if (state.onChange) state.onChange(state.items);
+        });
+      }
+    }
+
+    render();
+
+    return {
+      getItems: function () { return state.items; },
+      setCurrency: function (c) { state.currency = c; render(); },
+      onChange: function (fn) { state.onChange = fn; },
+    };
+  }
+
+  // ---------- BOM (Bill of Materials) editor ----------
+  // Used on the Products page when editing a finished-good item: a list
+  // of {materialId, qtyPerUnit} rows against the material catalog. Kept
+  // as its own small component (distinct from the invoice line items
+  // editor above) since it edits a totally different shape of data —
+  // "how much of X does one unit of this product need," not a sellable
+  // line with its own price.
+  function createBomEditor(container, bomLines, materials) {
+    var state = {
+      lines: (bomLines || []).map(function (l) { return Object.assign({}, l); }),
+    };
+
+    // `materials` is fixed for the life of this editor instance (one
+    // modal-open), so the active-material list backing every row's
+    // <select> is filtered once here rather than re-filtered from the
+    // full catalog inside materialOptionsHtml on every line's render.
+    var activeMaterials = (materials || []).filter(function (m) { return m.active; });
+
+    function materialOptionsHtml(selectedId) {
+      var opts = '<option value="">Choose a material…</option>';
+      opts += activeMaterials.map(function (m) {
+        return '<option value="' + m.id + '"' + (selectedId === m.id ? " selected" : "") + ">" + escapeHtml(m.name + " (" + m.sku + ") — " + m.stockQty + " " + m.unit + " in stock") + "</option>";
+      }).join("");
+      return opts;
+    }
+
+    function rowHtml(line, idx) {
+      return (
+        '<div class="bom-row" data-idx="' + idx + '">' +
+          '<select class="input" data-field="materialId" aria-label="Material">' + materialOptionsHtml(line.materialId) + "</select>" +
+          '<input class="input" type="number" min="0" step="any" data-field="qtyPerUnit" value="' + line.qtyPerUnit + '" aria-label="Quantity per unit"/>' +
+          '<button type="button" class="btn-icon" data-remove aria-label="Remove material line">' + ICONS.trash + "</button>" +
+        "</div>"
+      );
+    }
+
+    function render() {
+      if (!state.lines.length) {
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;margin-bottom:10px;">No materials added yet — this item has no Bill of Materials, so Production can\'t make it. Add at least one material below.</p>' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="bomAddBtn">' + ICONS.plus + " Add material</button>";
+      } else {
+        container.innerHTML =
+          '<div class="bom-head"><span>Material</span><span>Qty per unit made</span><span></span></div>' +
+          state.lines.map(rowHtml).join("") +
+          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="bomAddBtn">' + ICONS.plus + " Add material</button>";
+      }
+      bind();
+    }
+
+    function bind() {
+      container.querySelectorAll("[data-idx]").forEach(function (rowEl) {
+        var idx = Number(rowEl.getAttribute("data-idx"));
+        rowEl.querySelectorAll("[data-field]").forEach(function (input) {
+          var evt = input.tagName === "SELECT" ? "change" : "input";
+          input.addEventListener(evt, function () {
+            var field = input.getAttribute("data-field");
+            state.lines[idx][field] = field === "qtyPerUnit" ? Number(input.value) || 0 : input.value;
+          });
+        });
+        var removeBtn = rowEl.querySelector("[data-remove]");
+        if (removeBtn) removeBtn.addEventListener("click", function () { state.lines.splice(idx, 1); render(); });
+      });
+      var addBtn = container.querySelector("#bomAddBtn");
+      if (addBtn) addBtn.addEventListener("click", function () { state.lines.push({ materialId: "", qtyPerUnit: 1 }); render(); });
+    }
+
+    render();
+
+    return {
+      getLines: function () { return state.lines.filter(function (l) { return l.materialId; }); },
+    };
+  }
+
+  // ---------- Kanban board renderer (Advanced production mode) ----------
+  // `columns` = [{ key, label, cards: [{ id, html }] }]. Pure render —
+  // the caller wires up clicks afterward with querySelectorAll, same
+  // pattern as every other page in this suite (build HTML, then bind()).
+  function kanbanBoardHtml(columns) {
+    return (
+      '<div class="kanban-board">' +
+        columns.map(function (col) {
+          return (
+            '<div class="kanban-col">' +
+              '<div class="kanban-col-head"><span>' + escapeHtml(col.label) + '</span><span class="kanban-count">' + col.cards.length + "</span></div>" +
+              '<div class="kanban-col-body">' +
+                (col.cards.length ? col.cards.map(function (c) { return '<div class="kanban-card" data-card="' + c.id + '">' + c.html + "</div>"; }).join("") :
+                  '<div class="kanban-empty">Nothing here</div>') +
+              "</div>" +
+            "</div>"
+          );
+        }).join("") +
+      "</div>"
+    );
+  }
+
+  // ---------- lazy CDN script loading (used for the Excel export, so
+  // pages that never touch it don't pay for the download) ----------
+  var XLSX_SCRIPT = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  var loadedScripts = {};
+  function loadScript(src) {
+    if (loadedScripts[src]) return loadedScripts[src];
+    loadedScripts[src] = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-src="' + src + '"]');
+      if (existing) { existing.addEventListener("load", resolve); existing.addEventListener("error", reject); return; }
+      var s = document.createElement("script");
+      s.src = src;
+      s.setAttribute("data-src", src);
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error("Failed to load " + src)); };
+      document.head.appendChild(s);
+    });
+    return loadedScripts[src];
+  }
+  function downloadWorkbook(sheetName, rows, filename) {
+    return downloadWorkbookMulti([{ name: sheetName, rows: rows }], filename);
+  }
+  function autoSizeColumns(rows) {
+    if (!rows.length) return undefined;
+    var keys = Object.keys(rows[0]);
+    return keys.map(function (k) {
+      var maxLen = rows.reduce(function (m, r) {
+        var v = r[k];
+        return Math.max(m, String(v == null ? "" : v).length);
+      }, k.length);
+      return { wch: Math.min(Math.max(maxLen + 2, 10), 48) };
+    });
+  }
+  function downloadWorkbookMulti(sheets, filename) {
+    return loadScript(XLSX_SCRIPT).then(function () {
+      var wb = global.XLSX.utils.book_new();
+      sheets.forEach(function (sheet) {
+        var rows = sheet.rows || [];
+        var ws = global.XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
+        if (rows.length) ws["!cols"] = autoSizeColumns(rows);
+        global.XLSX.utils.book_append_sheet(wb, ws, String(sheet.name).slice(0, 31));
+      });
+      global.XLSX.writeFile(wb, filename);
+    });
+  }
+
+  // ---------- printable document window ----------
+  // Opens a new tab with a minimal, self-contained print-friendly page and
+  // triggers the browser's print dialog — this is how invoices and credit
+  // notes become PDFs, with no external library and no server needed
+  // ("Save as PDF" is a print destination in every modern browser). Kept
+  // strictly black/white/grey to match the app's own monochrome identity.
+  var PRINT_CSS =
+    "@media print{@page{margin:16mm 14mm;}}" +
+    "*{box-sizing:border-box;}" +
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1a1a1a;padding:44px;max-width:800px;margin:0 auto;line-height:1.5;-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
+    "h1{font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;margin:0 0 3px;letter-spacing:-.01em;}" +
+    "h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin:26px 0 8px;}" +
+    ".muted{color:#666;font-size:12px;margin:1px 0;}" +
+    ".letterhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}" +
+    ".company-block .logo{max-height:44px;max-width:220px;margin-bottom:10px;display:block;}" +
+    ".doc-block{text-align:right;min-width:180px;}" +
+    ".doc-type{font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;letter-spacing:.04em;margin-bottom:6px;}" +
+    ".doc-meta{font-size:12px;color:#444;margin:2px 0;}" +
+    ".doc-meta span{color:#888;display:inline-block;min-width:64px;}" +
+    ".doc-number{display:inline-block;font-weight:700;font-size:13px;background:#111;color:#fff;padding:3px 10px;border-radius:3px;letter-spacing:.02em;margin-bottom:6px;}" +
+    ".rule{border:none;border-top:2.5px solid #111;margin:20px 0 0;}" +
+    ".bill-to{background:#f6f6f6;border-radius:6px;padding:14px 16px;margin-top:22px;}" +
+    ".bill-to .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:4px;}" +
+    ".bill-to .name{font-weight:700;font-size:14px;}" +
+    "table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}" +
+    "thead tr{border-bottom:2px solid #111;}" +
+    "th{text-align:left;padding:9px 10px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#333;}" +
+    "td{padding:10px;border-bottom:1px solid #eee;}" +
+    "tbody tr:nth-child(even){background:#fafafa;}" +
+    "td.num,th.num{text-align:right;}" +
+    ".total-box{margin-top:10px;display:flex;justify-content:flex-end;}" +
+    ".total-box .inner{background:#111;color:#fff;padding:12px 20px;border-radius:6px;min-width:220px;display:flex;justify-content:space-between;align-items:center;gap:20px;}" +
+    ".total-box .inner .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.75;}" +
+    ".total-box .inner .value{font-size:19px;font-weight:700;}" +
+    ".doc-footer{margin-top:36px;padding-top:14px;border-top:1px solid #ddd;display:flex;justify-content:space-between;gap:20px;}" +
+    ".doc-footer .thanks{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13px;color:#333;}" +
+    ".doc-footer .stamp{font-size:10.5px;color:#999;text-align:right;}" +
+    "@media print{body{padding:0;}}";
+
+  function printLetterhead(settings, docType, docNumber, metaLines) {
+    return (
+      '<div class="letterhead">' +
+        '<div class="company-block">' +
+          (settings.logoDataUrl ? '<img class="logo" src="' + settings.logoDataUrl + '" />' : "") +
+          "<h1>" + escapeHtml(settings.businessName || "Your Business") + "</h1>" +
+          (settings.address ? '<p class="muted">' + escapeHtml(settings.address) + "</p>" : "") +
+          [settings.email, settings.phone, settings.website].filter(Boolean).map(function (v) { return '<p class="muted">' + escapeHtml(v) + "</p>"; }).join("") +
+        "</div>" +
+        '<div class="doc-block">' +
+          '<div class="doc-type">' + escapeHtml(docType) + "</div>" +
+          (docNumber ? '<div class="doc-number">' + escapeHtml(docNumber) + "</div>" : "") +
+          metaLines.map(function (m) { return '<p class="doc-meta"><span>' + escapeHtml(m.label) + "</span>" + escapeHtml(m.value) + "</p>"; }).join("") +
+        "</div>" +
+      "</div>" +
+      '<hr class="rule"/>'
+    );
+  }
+
+  function openPrintWindow(title, bodyHtml) {
+    var win = window.open("", "_blank");
+    if (!win) { toast("Your browser blocked the print window pop-up — allow pop-ups for this site and try again.", "error"); return; }
+    win.document.write(
+      "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + escapeHtml(title) + "</title>" +
+      "<style>" + PRINT_CSS + "</style></head><body>" + bodyHtml +
+      // Split across concatenated string pieces on purpose (this whole
+      // file gets inlined into a real <script> element by the build
+      // step, and the literal closing-tag text appearing anywhere in
+      // this file's raw source would truncate everything after it).
+      "<" + "script>window.onload=function(){setTimeout(function(){window.print();},150);};" + "<" + "/script>" +
+      "</body></html>"
+    );
+    win.document.close();
+  }
+
+  // Builds and opens a printable invoice document, including any credit
+  // applied — used both from the invoice editor and the invoices list.
+  function printInvoice(invoice, customer, settings, payments, creditNotes) {
+    var totals = MFG.computeTotals(invoice);
+    var paid = MFG.amountPaid(invoice.id, payments || []);
+    var creditApplied = MFG.creditAppliedForInvoice(invoice.id, creditNotes || []);
+    var balance = MFG.round2(totals.total - paid - creditApplied);
+    var rowsHtml = (invoice.items || []).map(function (it) {
+      return "<tr><td>" + escapeHtml(it.description || "—") + "</td>" +
+        "<td class='num'>" + it.quantity + "</td>" +
+        "<td class='num'>" + MFG.formatCurrency(it.rate, invoice.currency) + "</td>" +
+        "<td class='num'>" + MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.rate || 0)), invoice.currency) + "</td></tr>";
+    }).join("");
+    var metaLines = [
+      { label: "Issued", value: MFG.formatDate(invoice.issueDate) },
+      { label: "Due", value: MFG.formatDate(invoice.dueDate) },
+    ];
+    var billLines = customer ? [customer.name, customer.company, customer.email, customer.address].filter(Boolean) : ["—"];
+    var settledLine = creditApplied > 0
+      ? '<div class="total-box"><div class="inner" style="background:#666;"><span class="label">Credit Applied</span><span class="value">-' + MFG.formatCurrency(creditApplied, invoice.currency) + "</span></div></div>"
+      : "";
+    var html =
+      printLetterhead(settings, "INVOICE", invoice.number, metaLines) +
+      '<div class="bill-to">' +
+        '<div class="label">Bill To</div>' +
+        billLines.map(function (l, i) { return '<div class="' + (i === 0 ? "name" : "muted") + '">' + escapeHtml(l) + "</div>"; }).join("") +
+      "</div>" +
+      "<table><thead><tr><th>Description</th><th class='num'>Qty</th><th class='num'>Rate</th><th class='num'>Amount</th></tr></thead><tbody>" +
+      rowsHtml +
+      "</tbody></table>" +
+      settledLine +
+      '<div class="total-box"><div class="inner">' +
+        '<span class="label">' + ((paid > 0 || creditApplied > 0) ? "Balance Due" : "Total") + "</span>" +
+        '<span class="value">' + MFG.formatCurrency((paid > 0 || creditApplied > 0) ? balance : totals.total, invoice.currency) + "</span>" +
+      "</div></div>" +
+      (invoice.notes ? '<h2>Notes</h2><p class="muted">' + escapeHtml(invoice.notes) + "</p>" : "") +
+      (settings.paymentInstructions ? '<h2>Payment Instructions</h2><p class="muted">' + escapeHtml(settings.paymentInstructions) + "</p>" : "") +
+      '<div class="doc-footer"><div class="thanks">Thank you for your business.</div><div class="stamp">Generated ' + MFG.formatDate(MFG.todayISO()) + "</div></div>";
+    openPrintWindow("Invoice " + invoice.number, html);
+  }
+
+  // Prints a standalone credit-note document — its own applications (if
+  // any) are listed so it's clear at a glance where the credit has gone.
+  function printCreditNote(creditNote, customer, settings) {
+    var applied = (creditNote.applications || []).reduce(function (sum, a) { return sum + a.amount; }, 0);
+    var remaining = MFG.round2(creditNote.amount - applied);
+    var metaLines = [{ label: "Issued", value: MFG.formatDate(creditNote.date) }, { label: "Reason", value: creditNote.reason || "—" }];
+    var billLines = customer ? [customer.name, customer.company, customer.email, customer.address].filter(Boolean) : ["—"];
+    var appliedRows = (creditNote.applications || []).map(function (a) {
+      return "<tr><td>" + escapeHtml(MFG.formatDate(a.date)) + "</td><td class='num'>" + MFG.formatCurrency(a.amount) + "</td></tr>";
+    }).join("");
+    var html =
+      printLetterhead(settings, "CREDIT NOTE", "CN-" + creditNote.id.slice(0, 8).toUpperCase(), metaLines) +
+      '<div class="bill-to">' +
+        '<div class="label">Issued To</div>' +
+        billLines.map(function (l, i) { return '<div class="' + (i === 0 ? "name" : "muted") + '">' + escapeHtml(l) + "</div>"; }).join("") +
+      "</div>" +
+      (creditNote.note ? '<h2>Note</h2><p class="muted">' + escapeHtml(creditNote.note) + "</p>" : "") +
+      (appliedRows ? "<h2>Applied To</h2><table><thead><tr><th>Date</th><th class='num'>Amount</th></tr></thead><tbody>" + appliedRows + "</tbody></table>" : "") +
+      '<div class="total-box"><div class="inner">' +
+        '<span class="label">Remaining Credit</span><span class="value">' + MFG.formatCurrency(remaining) + "</span>" +
+      "</div></div>" +
+      '<div class="doc-footer"><div class="thanks">Thank you for your business.</div><div class="stamp">Generated ' + MFG.formatDate(MFG.todayISO()) + "</div></div>";
+    openPrintWindow("Credit Note", html);
+  }
+
+  global.MFGUI = {
+    ICONS: ICONS,
+    applyAccent: applyAccent,
+    renderShell: renderShell,
+    showStorageBanner: showStorageBanner,
+    hideStorageBanner: hideStorageBanner,
+    toast: toast,
+    openModal: openModal,
+    confirmDialog: confirmDialog,
+    escapeHtml: escapeHtml,
+    emptyState: emptyState,
+    statusBadge: statusBadge,
+    productionStatusBadge: productionStatusBadge,
+    createLineItemsEditor: createLineItemsEditor,
+    createBomEditor: createBomEditor,
+    kanbanBoardHtml: kanbanBoardHtml,
+    el: el,
+    qs: qs,
+    BUILD_DATE: BUILD_DATE,
+    loadScript: loadScript,
+    downloadWorkbook: downloadWorkbook,
+    downloadWorkbookMulti: downloadWorkbookMulti,
+    openPrintWindow: openPrintWindow,
+    printLetterhead: printLetterhead,
+    printInvoice: printInvoice,
+    printCreditNote: printCreditNote,
+  };
+})(window);
+
+</script>
+<script>
+/* Invoices list page */
+(function () {
+  "use strict";
+
+  var shell = MFGUI.renderShell("invoices");
+  var data = MFG.getData();
+  shell.setTitle("Invoices", data.invoices.length + " total invoices");
+  shell.setActions('<a class="btn btn-primary btn-sm" href="editor.html">' + MFGUI.ICONS.plus + '<span class="long">New Invoice</span></a>');
+
+  var FILTERS = [
+    { label: "All", value: "all" },
+    { label: "Draft", value: "draft" },
+    { label: "Sent", value: "sent" },
+    { label: "Partial", value: "partial" },
+    { label: "Overdue", value: "overdue" },
+    { label: "Paid", value: "paid" },
+    { label: "Cancelled", value: "cancelled" },
+  ];
+
+  var query = "";
+  var filter = "all";
+
+  function customerName(id) {
+    var c = MFG.getData().customers.find(function (x) { return x.id === id; });
+    return c ? c.name : "Unknown customer";
+  }
+  function customerEmail(id) {
+    var c = MFG.getData().customers.find(function (x) { return x.id === id; });
+    return c ? c.email : null;
+  }
+
+  function sendReminder(row) {
+    var email = customerEmail(row.invoice.customerId);
+    if (!email) { MFGUI.toast("This customer has no email on file.", "error"); return; }
+    var d = MFG.getData();
+    var subject = encodeURIComponent("Reminder: Invoice " + row.invoice.number + " is due");
+    var body = encodeURIComponent(
+      "Hi " + customerName(row.invoice.customerId) + ",\n\nThis is a friendly reminder that invoice " + row.invoice.number +
+      " for " + MFG.formatCurrency(row.balance, row.invoice.currency) + " was due on " + MFG.formatDate(row.invoice.dueDate) +
+      ".\n\nPlease let us know if you have any questions.\n\nThank you,\n" + d.settings.businessName
+    );
+    window.location.href = "mailto:" + email + "?subject=" + subject + "&body=" + body;
+  }
+
+  function render() {
+    var d = MFG.getData();
+    var rows = MFG.buildInvoiceRows(d.invoices, d.payments, d.creditNotes);
+    shell.setTitle("Invoices", d.invoices.length + " total invoices");
+
+    var q = query.trim().toLowerCase();
+    var filtered = rows
+      .filter(function (r) { return filter === "all" || r.status === filter; })
+      .filter(function (r) {
+        if (!q) return true;
+        return r.invoice.number.toLowerCase().indexOf(q) !== -1 || customerName(r.invoice.customerId).toLowerCase().indexOf(q) !== -1;
+      })
+      .sort(function (a, b) { return a.invoice.issueDate < b.invoice.issueDate ? 1 : -1; });
+
+    var filterChips = FILTERS.map(function (f) {
+      return '<button class="chip' + (filter === f.value ? " active" : "") + '" data-filter="' + f.value + '">' + f.label + "</button>";
+    }).join("");
+
+    var toolbar =
+      '<div class="flex-col" style="gap:12px;margin-bottom:16px;">' +
+        '<div class="field" style="max-width:320px;position:relative;">' +
+          '<input class="input" id="searchInput" placeholder="Search by customer or invoice #…" value="' + MFGUI.escapeHtml(query) + '" style="padding-left:34px;"/>' +
+          '<span style="position:absolute;left:10px;top:9px;width:16px;height:16px;color:var(--text-tertiary);">' + MFGUI.ICONS.search + "</span>" +
+        "</div>" +
+        '<div class="chip-row">' + filterChips + "</div>" +
+      "</div>";
+
+    var body;
+    if (filtered.length === 0) {
+      body = MFGUI.emptyState(
+        "invoices",
+        d.invoices.length === 0 ? "No invoices yet" : "No matching invoices",
+        d.invoices.length === 0 ? "Create your first invoice — pick items straight from your catalog and stock is deducted automatically." : "Try a different search or filter.",
+        d.invoices.length === 0 ? '<a class="btn btn-primary btn-sm" href="editor.html">' + MFGUI.ICONS.plus + " New Invoice</a>" : ""
+      );
+    } else {
+      body =
+        '<div class="table-wrap"><table class="table"><thead><tr>' +
+          "<th>Invoice</th><th>Customer</th><th>Issued</th><th>Due</th><th>Status</th>" +
+          '<th class="num">Total</th><th class="num">Credit</th><th class="num">Balance</th><th class="num">Actions</th>' +
+        "</tr></thead><tbody>" +
+        filtered.map(function (row) {
+          var actions = "";
+          if (row.balance > 0 && row.status !== "cancelled" && row.status !== "draft") {
+            actions += '<button class="btn-icon neutral" data-pay="' + row.invoice.id + '" title="Record payment" aria-label="Record payment">' + MFGUI.ICONS.wallet + "</button>";
+          }
+          if (row.status === "overdue" || row.status === "sent" || row.status === "partial") {
+            actions += '<button class="btn-icon neutral" data-remind="' + row.invoice.id + '" title="Email reminder" aria-label="Email reminder">' + MFGUI.ICONS.mail + "</button>";
+          }
+          actions += '<button class="btn-icon neutral" data-print="' + row.invoice.id + '" title="Print / PDF" aria-label="Print or save as PDF">' + MFGUI.ICONS.print + "</button>";
+          actions += '<button class="btn-icon" data-delete="' + row.invoice.id + '" title="Delete" aria-label="Delete invoice">' + MFGUI.ICONS.trash + "</button>";
+          return (
+            "<tr>" +
+              '<td><a href="editor.html?id=' + row.invoice.id + '">' + MFGUI.escapeHtml(row.invoice.number) + "</a></td>" +
+              "<td>" + MFGUI.escapeHtml(customerName(row.invoice.customerId)) + "</td>" +
+              "<td>" + MFG.formatDate(row.invoice.issueDate) + "</td>" +
+              "<td>" + MFG.formatDate(row.invoice.dueDate) + "</td>" +
+              "<td>" + MFGUI.statusBadge(row.status) + "</td>" +
+              '<td class="num">' + MFG.formatCurrency(row.total, row.invoice.currency) + "</td>" +
+              '<td class="num">' + (row.creditApplied > 0 ? MFG.formatCurrency(row.creditApplied, row.invoice.currency) : "—") + "</td>" +
+              '<td class="num" style="font-weight:600;">' + MFG.formatCurrency(row.balance, row.invoice.currency) + "</td>" +
+              '<td class="num"><div class="table-actions">' + actions + "</div></td>" +
+            "</tr>"
+          );
+        }).join("") +
+        "</tbody></table></div>";
+    }
+
+    shell.contentEl.innerHTML = toolbar + body;
+
+    var searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        query = searchInput.value;
+        var pos = searchInput.selectionStart;
+        render();
+        var again = document.getElementById("searchInput");
+        if (again) { again.focus(); again.setSelectionRange(pos, pos); }
+      });
+    }
+    shell.contentEl.querySelectorAll("[data-filter]").forEach(function (btn) {
+      btn.addEventListener("click", function () { filter = btn.getAttribute("data-filter"); render(); });
+    });
+    shell.contentEl.querySelectorAll("[data-remind]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var row = rows.find(function (r) { return r.invoice.id === btn.getAttribute("data-remind"); });
+        if (row) sendReminder(row);
+      });
+    });
+    shell.contentEl.querySelectorAll("[data-print]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var row = rows.find(function (r) { return r.invoice.id === btn.getAttribute("data-print"); });
+        if (!row) return;
+        var dd = MFG.getData();
+        MFGUI.printInvoice(row.invoice, dd.customers.find(function (c) { return c.id === row.invoice.customerId; }), dd.settings, dd.payments, dd.creditNotes);
+      });
+    });
+    shell.contentEl.querySelectorAll("[data-pay]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var row = rows.find(function (r) { return r.invoice.id === btn.getAttribute("data-pay"); });
+        if (row) openPaymentModal(row);
+      });
+    });
+    shell.contentEl.querySelectorAll("[data-delete]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-delete");
+        MFGUI.confirmDialog({
+          title: "Delete invoice?",
+          description: "This permanently deletes the invoice and any payments recorded against it. If it was sent, its stock deduction is restored first, and any credit notes applied to it are freed up again.",
+          confirmLabel: "Delete",
+          onConfirm: function () { MFG.deleteInvoice(id); MFGUI.toast("Invoice deleted.", "info"); render(); },
+        });
+      });
+    });
+  }
+
+  function openPaymentModal(row) {
+    var body =
+      '<p class="text-tertiary" style="font-size:12px;">Balance due: <strong style="color:var(--text);">' + MFG.formatCurrency(row.balance, row.invoice.currency) + "</strong></p>" +
+      '<div class="field"><label>Amount<span class="req">*</span></label><input class="input" type="number" min="0" step="any" id="pAmount" value="' + row.balance + '"/>' +
+      '<span class="error hidden" id="pAmountErr">Enter an amount greater than zero.</span></div>' +
+      '<div class="form-grid">' +
+        '<div class="field"><label>Date</label><input class="input" type="date" id="pDate" value="' + MFG.todayISO() + '"/></div>' +
+        '<div class="field"><label>Method</label><select class="input" id="pMethod">' +
+          ["Bank Transfer", "Credit Card", "Cash", "Check", "PayPal", "Other"].map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("") +
+        "</select></div>" +
+      "</div>" +
+      '<div class="field"><label>Note</label><textarea class="input" id="pNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>';
+
+    MFGUI.openModal({
+      title: "Record Payment",
+      body: body,
+      footer: '<button class="btn btn-ghost" id="cancelBtn">Cancel</button><button class="btn btn-primary" id="saveBtn">Record Payment</button>',
+      onMount: function (root, close) {
+        root.querySelector("#cancelBtn").addEventListener("click", close);
+        root.querySelector("#saveBtn").addEventListener("click", function () {
+          var amount = Number(root.querySelector("#pAmount").value);
+          if (!amount || amount <= 0) {
+            root.querySelector("#pAmount").classList.add("has-error");
+            root.querySelector("#pAmountErr").classList.remove("hidden");
+            return;
+          }
+          MFG.recordPayment({
+            invoiceId: row.invoice.id,
+            amount: amount,
+            date: root.querySelector("#pDate").value || MFG.todayISO(),
+            method: root.querySelector("#pMethod").value,
+            note: root.querySelector("#pNote").value.trim() || undefined,
+          });
+          MFGUI.toast("Payment recorded.");
+          close();
+          render();
+        });
+      },
+    });
+  }
+
+  render();
+})();
+
+</script>
+</body>
+</html>
