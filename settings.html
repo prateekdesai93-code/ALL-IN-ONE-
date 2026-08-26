@@ -218,7 +218,19 @@ img { max-width: 100%; display: block; }
 .brand-title { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-sub { font-size: 11px; color: var(--text-tertiary); }
 
-.nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.nav { display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
+/* Main tab (section) / sub tab (page) grouping — each .nav-group is one
+   main tab (an unclickable section label, since every sub tab underneath
+   stays visible with nothing to expand/collapse) holding its sub tabs. */
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 0 12px 2px 9px;
+}
 .nav-link {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 12px 7px 9px;
@@ -1162,6 +1174,27 @@ table.table a:hover { text-decoration: underline; }
       memoryFallback = value;
       storageDegraded = true;
       if (window.MFGUI && window.MFGUI.showStorageBanner) window.MFGUI.showStorageBanner();
+    }
+  }
+
+  // Live round-trip test — writes a throwaway key, reads it back, cleans
+  // up. Unlike storageDegraded (which only flips after a REAL save has
+  // already failed), this can be called proactively so a browser that
+  // blocks localStorage entirely from the very first page load — some
+  // Safari privacy modes do this for a page opened straight from a local
+  // file instead of a real web address — gets caught before the visitor
+  // has typed anything and lost it. Returns false on ANY failure,
+  // including "wrote fine but read back something different."
+  function testStorageWritable() {
+    var probeKey = "mfg_storage_probe_v1";
+    var probeValue = String(Date.now());
+    try {
+      window.localStorage.setItem(probeKey, probeValue);
+      var readBack = window.localStorage.getItem(probeKey);
+      window.localStorage.removeItem(probeKey);
+      return readBack === probeValue;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -2152,6 +2185,7 @@ table.table a:hover { text-decoration: underline; }
     round2: round2,
     formatQty: formatQty,
     isStorageDegraded: function () { return storageDegraded; },
+    testStorageWritable: testStorageWritable,
 
     findItem: findItem,
     materialItems: materialItems,
@@ -2308,21 +2342,58 @@ table.table a:hover { text-decoration: underline; }
     fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5Z"/><path d="M14 2v6h6"/><path d="M8.5 13h7M8.5 17h5"/></svg>',
   };
 
-  var NAV_ITEMS = [
-    { key: "dashboard", label: "Dashboard", href: "index.html", icon: ICONS.dashboard },
-    { key: "products", label: "Products", href: "products.html", icon: ICONS.products },
-    { key: "bom", label: "Bill of Materials", href: "bom.html", icon: ICONS.flask },
-    { key: "vendors", label: "Vendors", href: "vendors.html", icon: ICONS.vendors },
-    { key: "purchase-orders", label: "Purchase Orders", href: "purchase-orders.html", icon: ICONS.purchaseOrders },
-    { key: "accounts-payable", label: "Accounts Payable", href: "accounts-payable.html", icon: ICONS.wallet },
-    { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
-    { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
-    { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
-    { key: "credit-notes", label: "Credit Notes", href: "credit-notes.html", icon: ICONS.creditNote },
-    { key: "payments", label: "Payments", href: "payments.html", icon: ICONS.payments },
-    { key: "reports", label: "Reports", href: "reports.html", icon: ICONS.reports },
-    { key: "settings", label: "Settings", href: "settings.html", icon: ICONS.settings },
+  // Sidebar is organized as main tabs (a section label, matching the
+  // natural buy-make-sell flow of the business) each holding a handful of
+  // sub tabs (the actual pages) — flatter than one 13-item list, and
+  // nothing is hidden behind a click: every sub tab stays visible and one
+  // click away, just grouped so the sidebar reads as a map of the
+  // workflow instead of an alphabet-soup list.
+  var NAV_GROUPS = [
+    {
+      label: "Overview",
+      items: [
+        { key: "dashboard", label: "Dashboard", href: "index.html", icon: ICONS.dashboard },
+      ],
+    },
+    {
+      label: "Catalog & Production",
+      items: [
+        { key: "products", label: "Products", href: "products.html", icon: ICONS.products },
+        { key: "bom", label: "Bill of Materials", href: "bom.html", icon: ICONS.flask },
+        { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
+      ],
+    },
+    {
+      label: "Purchasing",
+      items: [
+        { key: "vendors", label: "Vendors", href: "vendors.html", icon: ICONS.vendors },
+        { key: "purchase-orders", label: "Purchase Orders", href: "purchase-orders.html", icon: ICONS.purchaseOrders },
+        { key: "accounts-payable", label: "Accounts Payable", href: "accounts-payable.html", icon: ICONS.wallet },
+      ],
+    },
+    {
+      label: "Sales & Customers",
+      items: [
+        { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
+        { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
+        { key: "credit-notes", label: "Credit Notes", href: "credit-notes.html", icon: ICONS.creditNote },
+        { key: "payments", label: "Payments", href: "payments.html", icon: ICONS.payments },
+      ],
+    },
+    {
+      label: "Insights",
+      items: [
+        { key: "reports", label: "Reports", href: "reports.html", icon: ICONS.reports },
+      ],
+    },
+    {
+      label: "Settings",
+      items: [
+        { key: "settings", label: "Settings", href: "settings.html", icon: ICONS.settings },
+      ],
+    },
   ];
+  var NAV_ITEMS = NAV_GROUPS.reduce(function (acc, g) { return acc.concat(g.items); }, []);
 
   function el(html) {
     var t = document.createElement("template");
@@ -2370,12 +2441,15 @@ table.table a:hover { text-decoration: underline; }
   function renderShell(activeKey) {
     applyAccent();
     var activeItem = NAV_ITEMS.filter(function (item) { return item.key === activeKey; })[0] || NAV_ITEMS[0];
-    var navHtml = NAV_ITEMS.map(function (item) {
-      var isActive = item.key === activeKey;
-      return (
-        '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '" ' + sectionColorStyle(item.key) + '>' +
-        '<span class="nav-icon-chip">' + item.icon + '</span><span>' + item.label + "</span></a>"
-      );
+    var navHtml = NAV_GROUPS.map(function (group) {
+      var itemsHtml = group.items.map(function (item) {
+        var isActive = item.key === activeKey;
+        return (
+          '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '" ' + sectionColorStyle(item.key) + '>' +
+          '<span class="nav-icon-chip">' + item.icon + '</span><span>' + item.label + "</span></a>"
+        );
+      }).join("");
+      return '<div class="nav-group"><div class="nav-group-label">' + escapeHtml(group.label) + '</div>' + itemsHtml + "</div>";
     }).join("");
 
     var shellHtml =
@@ -4036,6 +4110,28 @@ table.table a:hover { text-decoration: underline; }
 
   var CURRENCIES = MFG.CURRENCY_CODES.slice().sort();
 
+  // Belt-and-suspenders against browser autofill (Safari in particular
+  // has been reported to override a plain autocomplete="off" for fields
+  // it heuristically detects as an address/contact field — see the
+  // "biz-location-detail" name given to the address textarea below,
+  // which avoids the "address" keyword that heuristic keys off).
+  var NO_AUTOFILL_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"';
+
+  // Runs after typing pauses rather than on every keystroke, and (unlike
+  // the old "change" event) doesn't depend on the field ever losing focus
+  // — some Safari versions have been reported to swallow a textarea's
+  // blur/change entirely when their own autofill suggestion UI is
+  // involved, which would silently drop an edit no matter how careful the
+  // visitor was about clicking away afterward.
+  function debounce(fn, waitMs) {
+    var timer = null;
+    return function () {
+      var args = arguments, ctx = this;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () { fn.apply(ctx, args); }, waitMs);
+    };
+  }
+
   function formatBytes(n) {
     if (n < 1024) return n + " B";
     if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
@@ -4049,6 +4145,20 @@ table.table a:hover { text-decoration: underline; }
   // blob), so this is also the first place to look if the app starts
   // feeling slow or a change stops sticking.
   function storageStatusHtml() {
+    // A live round-trip test, not just "did the last save error out" —
+    // this catches a browser that's blocking storage from the very start
+    // (some Safari privacy modes do this for a page opened from a local
+    // file rather than a real web address), which would otherwise look
+    // exactly like "typing does nothing" with no explanation anywhere.
+    var writable = MFG.testStorageWritable();
+    if (!writable) {
+      return (
+        '<div class="card" style="border-color:var(--danger);background:var(--danger-soft);margin-bottom:12px;padding:12px 14px;">' +
+          '<p class="text-danger" style="font-size:12.5px;font-weight:700;margin-bottom:4px;">⚠ This browser is blocking saved data on this page right now</p>' +
+          '<p class="text-danger" style="font-size:11.5px;line-height:1.5;">Nothing you type — including business address and tax — will still be here after a refresh. This is almost always Safari\'s Private Browsing mode, or "Prevent Cross-Site Tracking" combined with opening this file directly instead of through a real web address. Try: turning off Private Browsing, or opening this same file in Chrome or Firefox to confirm it works there. Export a JSON backup as soon as storage is working again.</p>' +
+        "</div>"
+      );
+    }
     var info = MFG.storageInfo();
     var pieces = [formatBytes(info.bytes) + " of browser storage used"];
     if (info.attachmentCount > 0) pieces.push(info.attachmentCount + " purchase order attachment" + (info.attachmentCount === 1 ? "" : "s") + " (" + formatBytes(info.attachmentBytes) + ")");
@@ -4058,6 +4168,8 @@ table.table a:hover { text-decoration: underline; }
       msg += ". Your last change could NOT be saved — browser storage is full. Export a JSON backup now, then remove a large attachment or two from your purchase orders to free up room.";
     } else if (info.nearLimit) {
       msg += ". Getting close to what most browsers allow per site — if things start feeling slow or a change won't save, that's almost certainly why. Consider removing older purchase order attachments (the underlying files are safe elsewhere) or exporting a backup and starting a lighter dataset.";
+    } else {
+      msg += " · storage check passed ✓";
     }
     return '<p class="text-' + tone + '" style="font-size:11.5px;margin-bottom:12px;">' + MFGUI.escapeHtml(msg) + "</p>";
   }
@@ -4080,36 +4192,36 @@ table.table a:hover { text-decoration: underline; }
           "</div>" +
         "</div>" +
         '<div class="form-grid">' +
-          '<div class="field"><label>Business name</label><input class="input" id="sName" autocomplete="off" value="' + MFGUI.escapeHtml(s.businessName) + '"/></div>' +
-          '<div class="field"><label>Email</label><input class="input" type="email" id="sEmail" autocomplete="off" value="' + MFGUI.escapeHtml(s.email || "") + '"/></div>' +
-          '<div class="field"><label>Phone</label><input class="input" id="sPhone" autocomplete="off" value="' + MFGUI.escapeHtml(s.phone || "") + '"/></div>' +
-          '<div class="field"><label>Website</label><input class="input" id="sWebsite" autocomplete="off" value="' + MFGUI.escapeHtml(s.website || "") + '"/></div>' +
+          '<div class="field"><label>Business name</label><input class="input" id="sName" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.businessName) + '"/></div>' +
+          '<div class="field"><label>Email</label><input class="input" type="email" id="sEmail" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.email || "") + '"/></div>' +
+          '<div class="field"><label>Phone</label><input class="input" id="sPhone" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.phone || "") + '"/></div>' +
+          '<div class="field"><label>Website</label><input class="input" id="sWebsite" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.website || "") + '"/></div>' +
         "</div>" +
-        '<div class="field mt-2"><label>Business address</label><textarea class="input" id="sAddress" rows="3" autocomplete="off" placeholder="Street address\nCity, region, postal code\nCountry">' + MFGUI.escapeHtml(s.address || "") + "</textarea>" +
-        '<span class="hint">Drag the bottom-right corner to resize. Prints on invoices, credit notes, and purchase orders exactly as laid out here, line breaks included.</span></div>' +
+        '<div class="field mt-2"><label>Business address</label><textarea class="input" id="sAddress" name="biz-location-detail" rows="3" ' + NO_AUTOFILL_ATTRS + ' placeholder="Street address\nCity, region, postal code\nCountry">' + MFGUI.escapeHtml(s.address || "") + "</textarea>" +
+        '<span class="hint">Saves automatically as you type. Drag the bottom-right corner to resize. Prints on invoices, credit notes, and purchase orders exactly as laid out here, line breaks included.</span></div>' +
       "</div>" +
 
       '<div class="card section-card">' +
         '<h2>Invoice Defaults</h2>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Invoice number prefix</label><input class="input" id="sPrefix" autocomplete="off" value="' + MFGUI.escapeHtml(s.invoicePrefix) + '"/></div>' +
-          '<div class="field"><label>Next invoice number</label><input class="input" type="number" min="1" id="sSeq" autocomplete="off" value="' + s.nextInvoiceSeq + '"/>' +
+          '<div class="field"><label>Invoice number prefix</label><input class="input" id="sPrefix" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.invoicePrefix) + '"/></div>' +
+          '<div class="field"><label>Next invoice number</label><input class="input" type="number" min="1" id="sSeq" ' + NO_AUTOFILL_ATTRS + ' value="' + s.nextInvoiceSeq + '"/>' +
           '<span class="hint">Auto-increments after each new invoice.</span></div>' +
-          '<div class="field"><label>Tax name</label><input class="input" id="sTaxLabel" autocomplete="off" value="' + MFGUI.escapeHtml(s.taxLabel || "Tax") + '" placeholder="Tax, VAT, GST, Sales Tax…"/>' +
-          '<span class="hint">Whatever your own tax is called — shows up on the invoice editor and every printed invoice.</span></div>' +
-          '<div class="field"><label>Default ' + MFGUI.escapeHtml((s.taxLabel || "tax").toLowerCase()) + ' rate (%)</label><input class="input" type="number" min="0" id="sTax" autocomplete="off" value="' + s.defaultTaxRate + '"/>' +
+          '<div class="field"><label>Tax name</label><input class="input" id="sTaxLabel" name="tax-label-custom" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxLabel || "Tax") + '" placeholder="Tax, VAT, GST, Sales Tax…"/>' +
+          '<span class="hint">Whatever your own tax is called — shows up on the invoice editor and every printed invoice. Saves as you type.</span></div>' +
+          '<div class="field"><label id="sTaxRateLabel">Default ' + MFGUI.escapeHtml((s.taxLabel || "tax").toLowerCase()) + ' rate (%)</label><input class="input" type="number" min="0" id="sTax" ' + NO_AUTOFILL_ATTRS + ' value="' + s.defaultTaxRate + '"/>' +
           '<span class="hint">Starting rate on a new invoice — still editable per invoice.</span></div>' +
         "</div>" +
         '<div class="field mt-2"><label>Default payment instructions</label>' +
-        '<textarea class="input" id="sInstructions" rows="3" autocomplete="off">' + MFGUI.escapeHtml(s.paymentInstructions || "") + "</textarea>" +
+        '<textarea class="input" id="sInstructions" rows="3" ' + NO_AUTOFILL_ATTRS + '>' + MFGUI.escapeHtml(s.paymentInstructions || "") + "</textarea>" +
         '<span class="hint">Appears at the bottom of every printed invoice.</span></div>' +
       "</div>" +
 
       '<div class="card section-card">' +
         '<h2>Purchase Order Defaults</h2>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Purchase order number prefix</label><input class="input" id="sPoPrefix" autocomplete="off" value="' + MFGUI.escapeHtml(s.poPrefix) + '"/></div>' +
-          '<div class="field"><label>Next purchase order number</label><input class="input" type="number" min="1" id="sPoSeq" autocomplete="off" value="' + s.nextPoSeq + '"/>' +
+          '<div class="field"><label>Purchase order number prefix</label><input class="input" id="sPoPrefix" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.poPrefix) + '"/></div>' +
+          '<div class="field"><label>Next purchase order number</label><input class="input" type="number" min="1" id="sPoSeq" ' + NO_AUTOFILL_ATTRS + ' value="' + s.nextPoSeq + '"/>' +
           '<span class="hint">Auto-increments after each new purchase order.</span></div>' +
         "</div>" +
       "</div>" +
@@ -4130,9 +4242,9 @@ table.table a:hover { text-decoration: underline; }
             CURRENCIES.map(function (c) { return '<option value="' + c + '"' + (c === s.currency ? " selected" : "") + ">" + c + " (" + MFGUI.escapeHtml(MFG.currencySymbol(c)) + ")</option>"; }).join("") +
           "</select>" +
           '<span class="hint">Sets both the symbol and number formatting used across items and invoices.</span></div>' +
-          '<div class="field"><label>Custom symbol override</label><input class="input" id="sCustomSymbol" autocomplete="off" placeholder="e.g. Fr, kr, or your own" value="' + MFGUI.escapeHtml(s.customSymbol || "") + '"/>' +
+          '<div class="field"><label>Custom symbol override</label><input class="input" id="sCustomSymbol" ' + NO_AUTOFILL_ATTRS + ' placeholder="e.g. Fr, kr, or your own" value="' + MFGUI.escapeHtml(s.customSymbol || "") + '"/>' +
           '<span class="hint">Optional. If set, this replaces the symbol above everywhere.</span></div>' +
-          '<div class="field"><label>Default reorder threshold</label><input class="input" type="number" min="0" id="sThreshold" autocomplete="off" value="' + s.defaultReorderThreshold + '"/>' +
+          '<div class="field"><label>Default reorder threshold</label><input class="input" type="number" min="0" id="sThreshold" ' + NO_AUTOFILL_ATTRS + ' value="' + s.defaultReorderThreshold + '"/>' +
           '<span class="hint">Used when adding new materials or finished goods.</span></div>' +
         "</div>" +
       "</div>" +
@@ -4175,20 +4287,43 @@ table.table a:hover { text-decoration: underline; }
   function bind() {
     function save(patch) { MFG.updateSettings(patch); }
 
-    document.getElementById("sName").addEventListener("change", function (e) { save({ businessName: e.target.value }); MFGUI.toast("Saved."); });
-    document.getElementById("sEmail").addEventListener("change", function (e) { save({ email: e.target.value.trim() }); MFGUI.toast("Saved."); });
-    document.getElementById("sPhone").addEventListener("change", function (e) { save({ phone: e.target.value.trim() }); MFGUI.toast("Saved."); });
-    document.getElementById("sWebsite").addEventListener("change", function (e) { save({ website: e.target.value.trim() }); MFGUI.toast("Saved."); });
-    document.getElementById("sAddress").addEventListener("change", function (e) { save({ address: e.target.value.trim() }); MFGUI.toast("Saved."); });
+    // Saves ~500ms after typing stops, on the "input" event rather than
+    // "change" — so a save no longer depends on the field ever losing
+    // focus cleanly, which some Safari versions have been reported to
+    // interfere with on address-shaped or number fields. A quiet toast on
+    // every pause is intentional: confirmation you can actually see,
+    // instead of trusting a save happened.
+    function liveSave(el, patch, opts) {
+      opts = opts || {};
+      el.addEventListener("input", debounce(function (e) {
+        save(patch(e.target.value));
+        MFGUI.toast("Saved.");
+        if (opts.onSaved) opts.onSaved(e.target.value);
+      }, 500));
+    }
 
-    document.getElementById("sPrefix").addEventListener("change", function (e) { save({ invoicePrefix: e.target.value.toUpperCase().trim() || "INV" }); MFGUI.toast("Saved."); });
-    document.getElementById("sSeq").addEventListener("change", function (e) { save({ nextInvoiceSeq: Number(e.target.value) || 1 }); MFGUI.toast("Saved."); });
-    document.getElementById("sTaxLabel").addEventListener("change", function (e) { save({ taxLabel: e.target.value.trim() || "Tax" }); MFGUI.toast("Saved."); render(); });
-    document.getElementById("sTax").addEventListener("change", function (e) { save({ defaultTaxRate: Number(e.target.value) || 0 }); MFGUI.toast("Saved."); });
-    document.getElementById("sInstructions").addEventListener("change", function (e) { save({ paymentInstructions: e.target.value }); MFGUI.toast("Saved."); });
+    liveSave(document.getElementById("sName"), function (v) { return { businessName: v }; });
+    liveSave(document.getElementById("sEmail"), function (v) { return { email: v.trim() }; });
+    liveSave(document.getElementById("sPhone"), function (v) { return { phone: v.trim() }; });
+    liveSave(document.getElementById("sWebsite"), function (v) { return { website: v.trim() }; });
+    liveSave(document.getElementById("sAddress"), function (v) { return { address: v.trim() }; });
 
-    document.getElementById("sPoPrefix").addEventListener("change", function (e) { save({ poPrefix: e.target.value.toUpperCase().trim() || "PO" }); MFGUI.toast("Saved."); });
-    document.getElementById("sPoSeq").addEventListener("change", function (e) { save({ nextPoSeq: Number(e.target.value) || 1 }); MFGUI.toast("Saved."); });
+    liveSave(document.getElementById("sPrefix"), function (v) { return { invoicePrefix: v.toUpperCase().trim() || "INV" }; });
+    liveSave(document.getElementById("sSeq"), function (v) { return { nextInvoiceSeq: Number(v) || 1 }; });
+    // Updates just the dependent label's text in place instead of calling
+    // the full render() — a full re-render would rebuild this very field
+    // out from under the visitor's cursor the moment they pause typing.
+    liveSave(document.getElementById("sTaxLabel"), function (v) { return { taxLabel: v.trim() || "Tax" }; }, {
+      onSaved: function (v) {
+        var lbl = document.getElementById("sTaxRateLabel");
+        if (lbl) lbl.textContent = "Default " + (v.trim() || "tax").toLowerCase() + " rate (%)";
+      },
+    });
+    liveSave(document.getElementById("sTax"), function (v) { return { defaultTaxRate: Number(v) || 0 }; });
+    liveSave(document.getElementById("sInstructions"), function (v) { return { paymentInstructions: v }; });
+
+    liveSave(document.getElementById("sPoPrefix"), function (v) { return { poPrefix: v.toUpperCase().trim() || "PO" }; });
+    liveSave(document.getElementById("sPoSeq"), function (v) { return { nextPoSeq: Number(v) || 1 }; });
 
     var modeSeg = document.getElementById("modeSegmented");
     if (modeSeg) {
@@ -4202,8 +4337,8 @@ table.table a:hover { text-decoration: underline; }
     }
 
     document.getElementById("sCurrency").addEventListener("change", function (e) { save({ currency: e.target.value }); MFGUI.toast("Saved."); render(); });
-    document.getElementById("sCustomSymbol").addEventListener("change", function (e) { save({ customSymbol: e.target.value.trim() }); MFGUI.toast("Saved."); });
-    document.getElementById("sThreshold").addEventListener("change", function (e) { save({ defaultReorderThreshold: Number(e.target.value) || 0 }); MFGUI.toast("Saved."); });
+    liveSave(document.getElementById("sCustomSymbol"), function (v) { return { customSymbol: v.trim() }; });
+    liveSave(document.getElementById("sThreshold"), function (v) { return { defaultReorderThreshold: Number(v) || 0 }; });
 
     document.querySelectorAll("[data-theme]").forEach(function (btn) {
       btn.addEventListener("click", function () {

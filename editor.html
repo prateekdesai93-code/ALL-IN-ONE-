@@ -218,7 +218,19 @@ img { max-width: 100%; display: block; }
 .brand-title { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-sub { font-size: 11px; color: var(--text-tertiary); }
 
-.nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.nav { display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
+/* Main tab (section) / sub tab (page) grouping — each .nav-group is one
+   main tab (an unclickable section label, since every sub tab underneath
+   stays visible with nothing to expand/collapse) holding its sub tabs. */
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 0 12px 2px 9px;
+}
 .nav-link {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 12px 7px 9px;
@@ -1162,6 +1174,27 @@ table.table a:hover { text-decoration: underline; }
       memoryFallback = value;
       storageDegraded = true;
       if (window.MFGUI && window.MFGUI.showStorageBanner) window.MFGUI.showStorageBanner();
+    }
+  }
+
+  // Live round-trip test — writes a throwaway key, reads it back, cleans
+  // up. Unlike storageDegraded (which only flips after a REAL save has
+  // already failed), this can be called proactively so a browser that
+  // blocks localStorage entirely from the very first page load — some
+  // Safari privacy modes do this for a page opened straight from a local
+  // file instead of a real web address — gets caught before the visitor
+  // has typed anything and lost it. Returns false on ANY failure,
+  // including "wrote fine but read back something different."
+  function testStorageWritable() {
+    var probeKey = "mfg_storage_probe_v1";
+    var probeValue = String(Date.now());
+    try {
+      window.localStorage.setItem(probeKey, probeValue);
+      var readBack = window.localStorage.getItem(probeKey);
+      window.localStorage.removeItem(probeKey);
+      return readBack === probeValue;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -2152,6 +2185,7 @@ table.table a:hover { text-decoration: underline; }
     round2: round2,
     formatQty: formatQty,
     isStorageDegraded: function () { return storageDegraded; },
+    testStorageWritable: testStorageWritable,
 
     findItem: findItem,
     materialItems: materialItems,
@@ -2308,21 +2342,58 @@ table.table a:hover { text-decoration: underline; }
     fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5Z"/><path d="M14 2v6h6"/><path d="M8.5 13h7M8.5 17h5"/></svg>',
   };
 
-  var NAV_ITEMS = [
-    { key: "dashboard", label: "Dashboard", href: "index.html", icon: ICONS.dashboard },
-    { key: "products", label: "Products", href: "products.html", icon: ICONS.products },
-    { key: "bom", label: "Bill of Materials", href: "bom.html", icon: ICONS.flask },
-    { key: "vendors", label: "Vendors", href: "vendors.html", icon: ICONS.vendors },
-    { key: "purchase-orders", label: "Purchase Orders", href: "purchase-orders.html", icon: ICONS.purchaseOrders },
-    { key: "accounts-payable", label: "Accounts Payable", href: "accounts-payable.html", icon: ICONS.wallet },
-    { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
-    { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
-    { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
-    { key: "credit-notes", label: "Credit Notes", href: "credit-notes.html", icon: ICONS.creditNote },
-    { key: "payments", label: "Payments", href: "payments.html", icon: ICONS.payments },
-    { key: "reports", label: "Reports", href: "reports.html", icon: ICONS.reports },
-    { key: "settings", label: "Settings", href: "settings.html", icon: ICONS.settings },
+  // Sidebar is organized as main tabs (a section label, matching the
+  // natural buy-make-sell flow of the business) each holding a handful of
+  // sub tabs (the actual pages) — flatter than one 13-item list, and
+  // nothing is hidden behind a click: every sub tab stays visible and one
+  // click away, just grouped so the sidebar reads as a map of the
+  // workflow instead of an alphabet-soup list.
+  var NAV_GROUPS = [
+    {
+      label: "Overview",
+      items: [
+        { key: "dashboard", label: "Dashboard", href: "index.html", icon: ICONS.dashboard },
+      ],
+    },
+    {
+      label: "Catalog & Production",
+      items: [
+        { key: "products", label: "Products", href: "products.html", icon: ICONS.products },
+        { key: "bom", label: "Bill of Materials", href: "bom.html", icon: ICONS.flask },
+        { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
+      ],
+    },
+    {
+      label: "Purchasing",
+      items: [
+        { key: "vendors", label: "Vendors", href: "vendors.html", icon: ICONS.vendors },
+        { key: "purchase-orders", label: "Purchase Orders", href: "purchase-orders.html", icon: ICONS.purchaseOrders },
+        { key: "accounts-payable", label: "Accounts Payable", href: "accounts-payable.html", icon: ICONS.wallet },
+      ],
+    },
+    {
+      label: "Sales & Customers",
+      items: [
+        { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
+        { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
+        { key: "credit-notes", label: "Credit Notes", href: "credit-notes.html", icon: ICONS.creditNote },
+        { key: "payments", label: "Payments", href: "payments.html", icon: ICONS.payments },
+      ],
+    },
+    {
+      label: "Insights",
+      items: [
+        { key: "reports", label: "Reports", href: "reports.html", icon: ICONS.reports },
+      ],
+    },
+    {
+      label: "Settings",
+      items: [
+        { key: "settings", label: "Settings", href: "settings.html", icon: ICONS.settings },
+      ],
+    },
   ];
+  var NAV_ITEMS = NAV_GROUPS.reduce(function (acc, g) { return acc.concat(g.items); }, []);
 
   function el(html) {
     var t = document.createElement("template");
@@ -2370,12 +2441,15 @@ table.table a:hover { text-decoration: underline; }
   function renderShell(activeKey) {
     applyAccent();
     var activeItem = NAV_ITEMS.filter(function (item) { return item.key === activeKey; })[0] || NAV_ITEMS[0];
-    var navHtml = NAV_ITEMS.map(function (item) {
-      var isActive = item.key === activeKey;
-      return (
-        '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '" ' + sectionColorStyle(item.key) + '>' +
-        '<span class="nav-icon-chip">' + item.icon + '</span><span>' + item.label + "</span></a>"
-      );
+    var navHtml = NAV_GROUPS.map(function (group) {
+      var itemsHtml = group.items.map(function (item) {
+        var isActive = item.key === activeKey;
+        return (
+          '<a class="nav-link' + (isActive ? " active" : "") + '" href="' + item.href + '" ' + sectionColorStyle(item.key) + '>' +
+          '<span class="nav-icon-chip">' + item.icon + '</span><span>' + item.label + "</span></a>"
+        );
+      }).join("");
+      return '<div class="nav-group"><div class="nav-group-label">' + escapeHtml(group.label) + '</div>' + itemsHtml + "</div>";
     }).join("");
 
     var shellHtml =
