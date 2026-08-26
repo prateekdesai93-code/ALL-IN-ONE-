@@ -113,21 +113,23 @@ html[data-theme="light"] {
 }
 
 /* Blue theme — a third choice alongside pure-black Dark and white Light:
-   a deep navy dark mode instead of true black, with a brighter blue brand
-   accent to match. Same section-color system as the other two themes (the
-   palette already reads clearly against a dark background, navy or not),
-   so switching themes never changes which color means which part of the
-   app. Toggle in Settings → Theme sets data-theme="blue" on <html>. */
+   a near-black midnight base with a blue undertone instead of true black,
+   with a brighter blue brand accent to match. Darker than the first pass —
+   the background reads as "black with a hint of blue" rather than a
+   lighter navy panel. Same section-color system as the other two themes
+   (the palette already reads clearly against a dark background), so
+   switching themes never changes which color means which part of the app.
+   Toggle in Settings → Theme sets data-theme="blue" on <html>. */
 html[data-theme="blue"] {
-  --bg: #060d1c;
-  --surface: #0a1626;
-  --surface-2: #101f34;
-  --surface-hover: #16283f;
-  --border: #1e3350;
-  --border-strong: #2c4a70;
-  --text: #eaf1fb;
-  --text-secondary: #94aecb;
-  --text-tertiary: #5d7ea3;
+  --bg: #03060c;
+  --surface: #050a14;
+  --surface-2: #0a1220;
+  --surface-hover: #101a2c;
+  --border: #182740;
+  --border-strong: #223757;
+  --text: #e6edf7;
+  --text-secondary: #8ba0bf;
+  --text-tertiary: #55677f;
 
   --accent: #3b82f6;
   --accent-soft: rgba(59, 130, 246, 0.2);
@@ -589,6 +591,8 @@ textarea.input { resize: vertical; min-height: 72px; }
 /* ---------- Utility ---------- */
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
 .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 14px; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .min-w-0 { min-width: 0; }
@@ -2091,6 +2095,35 @@ table.table a:hover { text-decoration: underline; }
   function exportData() {
     return JSON.stringify(data, null, 2);
   }
+
+  // Everything lives in one localStorage key, and most browsers cap a
+  // single origin at somewhere around 5-10MB (file:// origins and Safari
+  // in particular can be far stingier). PO attachments store raw file
+  // bytes as base64 right inside that same blob, so a handful of
+  // attached PDFs/photos across several purchase orders can push the
+  // whole thing toward that ceiling — every field you edit after that
+  // point re-serializes and re-saves the ENTIRE blob, which gets slower
+  // and slower as it grows, and can eventually fail outright (silently
+  // falling back to memory-only, see safeSetItem above). Settings surfaces
+  // this so "the app feels slow/frozen" and "my change didn't save" have
+  // somewhere concrete to point to instead of being a mystery.
+  function storageInfo() {
+    var json = JSON.stringify(data);
+    var bytes = json.length;
+    var attachmentBytes = (data.purchaseOrders || []).reduce(function (sum, po) {
+      return sum + (po.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
+    }, 0);
+    var attachmentCount = (data.purchaseOrders || []).reduce(function (sum, po) { return sum + (po.attachments || []).length; }, 0);
+    return {
+      bytes: bytes,
+      attachmentBytes: attachmentBytes,
+      attachmentCount: attachmentCount,
+      degraded: storageDegraded,
+      // Conservative — real quotas vary by browser, but most are at least
+      // this much, so treat crossing it as a real warning, not a guess.
+      nearLimit: bytes > 4 * 1024 * 1024,
+    };
+  }
   function importData(json) {
     try {
       var parsed = JSON.parse(json);
@@ -2212,6 +2245,7 @@ table.table a:hover { text-decoration: underline; }
     CURRENCY_CODES: Object.keys(CURRENCY_META),
 
     exportData: exportData,
+    storageInfo: storageInfo,
     importData: importData,
     resetAllData: resetAllData,
   };
@@ -4002,6 +4036,32 @@ table.table a:hover { text-decoration: underline; }
 
   var CURRENCIES = MFG.CURRENCY_CODES.slice().sort();
 
+  function formatBytes(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
+    return (n / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  // Everything this app stores lives in one browser localStorage key, with
+  // no server backing it up — so how close that is to a real browser
+  // limit matters. Purchase order attachments are the one thing that can
+  // grow this fast (each file is stored as base64 right in the same
+  // blob), so this is also the first place to look if the app starts
+  // feeling slow or a change stops sticking.
+  function storageStatusHtml() {
+    var info = MFG.storageInfo();
+    var pieces = [formatBytes(info.bytes) + " of browser storage used"];
+    if (info.attachmentCount > 0) pieces.push(info.attachmentCount + " purchase order attachment" + (info.attachmentCount === 1 ? "" : "s") + " (" + formatBytes(info.attachmentBytes) + ")");
+    var tone = info.degraded ? "danger" : (info.nearLimit ? "warning" : "tertiary");
+    var msg = pieces.join(" · ");
+    if (info.degraded) {
+      msg += ". Your last change could NOT be saved — browser storage is full. Export a JSON backup now, then remove a large attachment or two from your purchase orders to free up room.";
+    } else if (info.nearLimit) {
+      msg += ". Getting close to what most browsers allow per site — if things start feeling slow or a change won't save, that's almost certainly why. Consider removing older purchase order attachments (the underlying files are safe elsewhere) or exporting a backup and starting a lighter dataset.";
+    }
+    return '<p class="text-' + tone + '" style="font-size:11.5px;margin-bottom:12px;">' + MFGUI.escapeHtml(msg) + "</p>";
+  }
+
   function render() {
     var data = MFG.getData();
     var s = data.settings;
@@ -4020,36 +4080,36 @@ table.table a:hover { text-decoration: underline; }
           "</div>" +
         "</div>" +
         '<div class="form-grid">' +
-          '<div class="field"><label>Business name</label><input class="input" id="sName" value="' + MFGUI.escapeHtml(s.businessName) + '"/></div>' +
-          '<div class="field"><label>Email</label><input class="input" type="email" id="sEmail" value="' + MFGUI.escapeHtml(s.email || "") + '"/></div>' +
-          '<div class="field"><label>Phone</label><input class="input" id="sPhone" value="' + MFGUI.escapeHtml(s.phone || "") + '"/></div>' +
-          '<div class="field"><label>Website</label><input class="input" id="sWebsite" value="' + MFGUI.escapeHtml(s.website || "") + '"/></div>' +
+          '<div class="field"><label>Business name</label><input class="input" id="sName" autocomplete="off" value="' + MFGUI.escapeHtml(s.businessName) + '"/></div>' +
+          '<div class="field"><label>Email</label><input class="input" type="email" id="sEmail" autocomplete="off" value="' + MFGUI.escapeHtml(s.email || "") + '"/></div>' +
+          '<div class="field"><label>Phone</label><input class="input" id="sPhone" autocomplete="off" value="' + MFGUI.escapeHtml(s.phone || "") + '"/></div>' +
+          '<div class="field"><label>Website</label><input class="input" id="sWebsite" autocomplete="off" value="' + MFGUI.escapeHtml(s.website || "") + '"/></div>' +
         "</div>" +
-        '<div class="field mt-2"><label>Business address</label><textarea class="input" id="sAddress" rows="3" placeholder="Street address\nCity, region, postal code\nCountry">' + MFGUI.escapeHtml(s.address || "") + "</textarea>" +
+        '<div class="field mt-2"><label>Business address</label><textarea class="input" id="sAddress" rows="3" autocomplete="off" placeholder="Street address\nCity, region, postal code\nCountry">' + MFGUI.escapeHtml(s.address || "") + "</textarea>" +
         '<span class="hint">Drag the bottom-right corner to resize. Prints on invoices, credit notes, and purchase orders exactly as laid out here, line breaks included.</span></div>' +
       "</div>" +
 
       '<div class="card section-card">' +
         '<h2>Invoice Defaults</h2>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Invoice number prefix</label><input class="input" id="sPrefix" value="' + MFGUI.escapeHtml(s.invoicePrefix) + '"/></div>' +
-          '<div class="field"><label>Next invoice number</label><input class="input" type="number" min="1" id="sSeq" value="' + s.nextInvoiceSeq + '"/>' +
+          '<div class="field"><label>Invoice number prefix</label><input class="input" id="sPrefix" autocomplete="off" value="' + MFGUI.escapeHtml(s.invoicePrefix) + '"/></div>' +
+          '<div class="field"><label>Next invoice number</label><input class="input" type="number" min="1" id="sSeq" autocomplete="off" value="' + s.nextInvoiceSeq + '"/>' +
           '<span class="hint">Auto-increments after each new invoice.</span></div>' +
-          '<div class="field"><label>Tax name</label><input class="input" id="sTaxLabel" value="' + MFGUI.escapeHtml(s.taxLabel || "Tax") + '" placeholder="Tax, VAT, GST, Sales Tax…"/>' +
+          '<div class="field"><label>Tax name</label><input class="input" id="sTaxLabel" autocomplete="off" value="' + MFGUI.escapeHtml(s.taxLabel || "Tax") + '" placeholder="Tax, VAT, GST, Sales Tax…"/>' +
           '<span class="hint">Whatever your own tax is called — shows up on the invoice editor and every printed invoice.</span></div>' +
-          '<div class="field"><label>Default ' + MFGUI.escapeHtml((s.taxLabel || "tax").toLowerCase()) + ' rate (%)</label><input class="input" type="number" min="0" id="sTax" value="' + s.defaultTaxRate + '"/>' +
+          '<div class="field"><label>Default ' + MFGUI.escapeHtml((s.taxLabel || "tax").toLowerCase()) + ' rate (%)</label><input class="input" type="number" min="0" id="sTax" autocomplete="off" value="' + s.defaultTaxRate + '"/>' +
           '<span class="hint">Starting rate on a new invoice — still editable per invoice.</span></div>' +
         "</div>" +
         '<div class="field mt-2"><label>Default payment instructions</label>' +
-        '<textarea class="input" id="sInstructions" rows="3">' + MFGUI.escapeHtml(s.paymentInstructions || "") + "</textarea>" +
+        '<textarea class="input" id="sInstructions" rows="3" autocomplete="off">' + MFGUI.escapeHtml(s.paymentInstructions || "") + "</textarea>" +
         '<span class="hint">Appears at the bottom of every printed invoice.</span></div>' +
       "</div>" +
 
       '<div class="card section-card">' +
         '<h2>Purchase Order Defaults</h2>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Purchase order number prefix</label><input class="input" id="sPoPrefix" value="' + MFGUI.escapeHtml(s.poPrefix) + '"/></div>' +
-          '<div class="field"><label>Next purchase order number</label><input class="input" type="number" min="1" id="sPoSeq" value="' + s.nextPoSeq + '"/>' +
+          '<div class="field"><label>Purchase order number prefix</label><input class="input" id="sPoPrefix" autocomplete="off" value="' + MFGUI.escapeHtml(s.poPrefix) + '"/></div>' +
+          '<div class="field"><label>Next purchase order number</label><input class="input" type="number" min="1" id="sPoSeq" autocomplete="off" value="' + s.nextPoSeq + '"/>' +
           '<span class="hint">Auto-increments after each new purchase order.</span></div>' +
         "</div>" +
       "</div>" +
@@ -4070,9 +4130,9 @@ table.table a:hover { text-decoration: underline; }
             CURRENCIES.map(function (c) { return '<option value="' + c + '"' + (c === s.currency ? " selected" : "") + ">" + c + " (" + MFGUI.escapeHtml(MFG.currencySymbol(c)) + ")</option>"; }).join("") +
           "</select>" +
           '<span class="hint">Sets both the symbol and number formatting used across items and invoices.</span></div>' +
-          '<div class="field"><label>Custom symbol override</label><input class="input" id="sCustomSymbol" placeholder="e.g. Fr, kr, or your own" value="' + MFGUI.escapeHtml(s.customSymbol || "") + '"/>' +
+          '<div class="field"><label>Custom symbol override</label><input class="input" id="sCustomSymbol" autocomplete="off" placeholder="e.g. Fr, kr, or your own" value="' + MFGUI.escapeHtml(s.customSymbol || "") + '"/>' +
           '<span class="hint">Optional. If set, this replaces the symbol above everywhere.</span></div>' +
-          '<div class="field"><label>Default reorder threshold</label><input class="input" type="number" min="0" id="sThreshold" value="' + s.defaultReorderThreshold + '"/>' +
+          '<div class="field"><label>Default reorder threshold</label><input class="input" type="number" min="0" id="sThreshold" autocomplete="off" value="' + s.defaultReorderThreshold + '"/>' +
           '<span class="hint">Used when adding new materials or finished goods.</span></div>' +
         "</div>" +
       "</div>" +
@@ -4090,6 +4150,7 @@ table.table a:hover { text-decoration: underline; }
       '<div class="card section-card">' +
         '<h2 style="margin-bottom:4px;">Backup &amp; Restore</h2>' +
         '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Your data — items, BOMs, production orders, vendors, purchase orders, customers, invoices, credit notes, payments — lives in this browser only. Download a backup regularly, or before switching devices.</p>' +
+        storageStatusHtml() +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
           '<button class="btn btn-secondary btn-sm" id="exportBtn">' + MFGUI.ICONS.download + " Export backup (.json)</button>" +
           '<input type="file" accept="application/json" id="importInput" class="hidden"/>' +

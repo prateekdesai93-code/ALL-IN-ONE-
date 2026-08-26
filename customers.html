@@ -113,21 +113,23 @@ html[data-theme="light"] {
 }
 
 /* Blue theme — a third choice alongside pure-black Dark and white Light:
-   a deep navy dark mode instead of true black, with a brighter blue brand
-   accent to match. Same section-color system as the other two themes (the
-   palette already reads clearly against a dark background, navy or not),
-   so switching themes never changes which color means which part of the
-   app. Toggle in Settings → Theme sets data-theme="blue" on <html>. */
+   a near-black midnight base with a blue undertone instead of true black,
+   with a brighter blue brand accent to match. Darker than the first pass —
+   the background reads as "black with a hint of blue" rather than a
+   lighter navy panel. Same section-color system as the other two themes
+   (the palette already reads clearly against a dark background), so
+   switching themes never changes which color means which part of the app.
+   Toggle in Settings → Theme sets data-theme="blue" on <html>. */
 html[data-theme="blue"] {
-  --bg: #060d1c;
-  --surface: #0a1626;
-  --surface-2: #101f34;
-  --surface-hover: #16283f;
-  --border: #1e3350;
-  --border-strong: #2c4a70;
-  --text: #eaf1fb;
-  --text-secondary: #94aecb;
-  --text-tertiary: #5d7ea3;
+  --bg: #03060c;
+  --surface: #050a14;
+  --surface-2: #0a1220;
+  --surface-hover: #101a2c;
+  --border: #182740;
+  --border-strong: #223757;
+  --text: #e6edf7;
+  --text-secondary: #8ba0bf;
+  --text-tertiary: #55677f;
 
   --accent: #3b82f6;
   --accent-soft: rgba(59, 130, 246, 0.2);
@@ -589,6 +591,8 @@ textarea.input { resize: vertical; min-height: 72px; }
 /* ---------- Utility ---------- */
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
 .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 14px; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .min-w-0 { min-width: 0; }
@@ -2091,6 +2095,35 @@ table.table a:hover { text-decoration: underline; }
   function exportData() {
     return JSON.stringify(data, null, 2);
   }
+
+  // Everything lives in one localStorage key, and most browsers cap a
+  // single origin at somewhere around 5-10MB (file:// origins and Safari
+  // in particular can be far stingier). PO attachments store raw file
+  // bytes as base64 right inside that same blob, so a handful of
+  // attached PDFs/photos across several purchase orders can push the
+  // whole thing toward that ceiling — every field you edit after that
+  // point re-serializes and re-saves the ENTIRE blob, which gets slower
+  // and slower as it grows, and can eventually fail outright (silently
+  // falling back to memory-only, see safeSetItem above). Settings surfaces
+  // this so "the app feels slow/frozen" and "my change didn't save" have
+  // somewhere concrete to point to instead of being a mystery.
+  function storageInfo() {
+    var json = JSON.stringify(data);
+    var bytes = json.length;
+    var attachmentBytes = (data.purchaseOrders || []).reduce(function (sum, po) {
+      return sum + (po.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
+    }, 0);
+    var attachmentCount = (data.purchaseOrders || []).reduce(function (sum, po) { return sum + (po.attachments || []).length; }, 0);
+    return {
+      bytes: bytes,
+      attachmentBytes: attachmentBytes,
+      attachmentCount: attachmentCount,
+      degraded: storageDegraded,
+      // Conservative — real quotas vary by browser, but most are at least
+      // this much, so treat crossing it as a real warning, not a guess.
+      nearLimit: bytes > 4 * 1024 * 1024,
+    };
+  }
   function importData(json) {
     try {
       var parsed = JSON.parse(json);
@@ -2212,6 +2245,7 @@ table.table a:hover { text-decoration: underline; }
     CURRENCY_CODES: Object.keys(CURRENCY_META),
 
     exportData: exportData,
+    storageInfo: storageInfo,
     importData: importData,
     resetAllData: resetAllData,
   };
@@ -3749,16 +3783,16 @@ table.table a:hover { text-decoration: underline; }
     var v = existing || {};
     return (
       '<div class="field"><label>Full name<span class="req">*</span></label>' +
-      '<input class="input" id="fName" placeholder="Jane Doe" value="' + MFGUI.escapeHtml(v.name || "") + '"/>' +
+      '<input class="input" id="fName" autocomplete="off" placeholder="Jane Doe" value="' + MFGUI.escapeHtml(v.name || "") + '"/>' +
       '<span class="error hidden" id="fNameErr">Customer name is required.</span></div>' +
       '<div class="field"><label>Email<span class="req">*</span></label>' +
-      '<input class="input" type="email" id="fEmail" placeholder="jane@company.com" value="' + MFGUI.escapeHtml(v.email || "") + '"/>' +
+      '<input class="input" type="email" id="fEmail" autocomplete="off" placeholder="jane@company.com" value="' + MFGUI.escapeHtml(v.email || "") + '"/>' +
       '<span class="error hidden" id="fEmailErr">Enter a valid email address.</span></div>' +
       '<div class="form-grid">' +
-        '<div class="field"><label>Phone</label><input class="input" id="fPhone" placeholder="+1 555 0100" value="' + MFGUI.escapeHtml(v.phone || "") + '"/></div>' +
-        '<div class="field"><label>Company</label><input class="input" id="fCompany" placeholder="Acme Inc." value="' + MFGUI.escapeHtml(v.company || "") + '"/></div>' +
+        '<div class="field"><label>Phone</label><input class="input" id="fPhone" autocomplete="off" placeholder="+1 555 0100" value="' + MFGUI.escapeHtml(v.phone || "") + '"/></div>' +
+        '<div class="field"><label>Company</label><input class="input" id="fCompany" autocomplete="off" placeholder="Acme Inc." value="' + MFGUI.escapeHtml(v.company || "") + '"/></div>' +
       "</div>" +
-      '<div class="field"><label>Billing address</label><textarea class="input" id="fAddress" rows="2">' + MFGUI.escapeHtml(v.address || "") + "</textarea></div>" +
+      '<div class="field"><label>Billing address</label><textarea class="input" id="fAddress" rows="2" autocomplete="off">' + MFGUI.escapeHtml(v.address || "") + "</textarea></div>" +
       '<div class="field"><label>Notes</label><textarea class="input" id="fNotes" rows="2" placeholder="Internal notes, not shown on invoices.">' + MFGUI.escapeHtml(v.notes || "") + "</textarea></div>" +
       '<div class="field"><label>Custom Pricing</label><div id="priceOverridesContainer"></div>' +
       '<span class="hint">Give this customer a different price than usual on specific items — it auto-fills instead of the normal sell price when you pick that item on one of their invoices.</span></div>'
