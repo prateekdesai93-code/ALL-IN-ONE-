@@ -48,6 +48,7 @@
   --sec-bom: #a3e635; --sec-bom-soft: rgba(163, 230, 53, 0.18);
   --sec-vendors: #fb923c; --sec-vendors-soft: rgba(251, 146, 60, 0.18);
   --sec-purchase-orders: #2dd4bf; --sec-purchase-orders-soft: rgba(45, 212, 191, 0.18);
+  --sec-accounts-payable: #fb7185; --sec-accounts-payable-soft: rgba(251, 113, 133, 0.18);
   --sec-production: #e879f9; --sec-production-soft: rgba(232, 121, 249, 0.18);
   --sec-customers: #22d3ee; --sec-customers-soft: rgba(34, 211, 238, 0.18);
   --sec-invoices: #818cf8; --sec-invoices-soft: rgba(129, 140, 248, 0.18);
@@ -97,6 +98,7 @@ html[data-theme="light"] {
   --sec-bom: #4d7c0f; --sec-bom-soft: rgba(77, 124, 15, 0.12);
   --sec-vendors: #ea580c; --sec-vendors-soft: rgba(234, 88, 12, 0.12);
   --sec-purchase-orders: #0d9488; --sec-purchase-orders-soft: rgba(13, 148, 136, 0.12);
+  --sec-accounts-payable: #e11d48; --sec-accounts-payable-soft: rgba(225, 29, 72, 0.12);
   --sec-production: #c026d3; --sec-production-soft: rgba(192, 38, 211, 0.12);
   --sec-customers: #0891b2; --sec-customers-soft: rgba(8, 145, 178, 0.12);
   --sec-invoices: #4f46e5; --sec-invoices-soft: rgba(79, 70, 229, 0.12);
@@ -108,6 +110,54 @@ html[data-theme="light"] {
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.2);
   --accent-glow: rgba(79, 70, 229, 0.25);
+}
+
+/* Blue theme — a third choice alongside pure-black Dark and white Light:
+   a deep navy dark mode instead of true black, with a brighter blue brand
+   accent to match. Same section-color system as the other two themes (the
+   palette already reads clearly against a dark background, navy or not),
+   so switching themes never changes which color means which part of the
+   app. Toggle in Settings → Theme sets data-theme="blue" on <html>. */
+html[data-theme="blue"] {
+  --bg: #060d1c;
+  --surface: #0a1626;
+  --surface-2: #101f34;
+  --surface-hover: #16283f;
+  --border: #1e3350;
+  --border-strong: #2c4a70;
+  --text: #eaf1fb;
+  --text-secondary: #94aecb;
+  --text-tertiary: #5d7ea3;
+
+  --accent: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.2);
+  --accent-text: #93c5fd;
+  --accent-contrast: #ffffff;
+
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
+
+  --sec-dashboard: #60a5fa; --sec-dashboard-soft: rgba(96, 165, 250, 0.2);
+  --sec-products: #a78bfa; --sec-products-soft: rgba(167, 139, 250, 0.2);
+  --sec-bom: #a3e635; --sec-bom-soft: rgba(163, 230, 53, 0.2);
+  --sec-vendors: #fb923c; --sec-vendors-soft: rgba(251, 146, 60, 0.2);
+  --sec-purchase-orders: #2dd4bf; --sec-purchase-orders-soft: rgba(45, 212, 191, 0.2);
+  --sec-accounts-payable: #fb7185; --sec-accounts-payable-soft: rgba(251, 113, 133, 0.2);
+  --sec-production: #e879f9; --sec-production-soft: rgba(232, 121, 249, 0.2);
+  --sec-customers: #22d3ee; --sec-customers-soft: rgba(34, 211, 238, 0.2);
+  --sec-invoices: #818cf8; --sec-invoices-soft: rgba(129, 140, 248, 0.2);
+  --sec-credit-notes: #f472b6; --sec-credit-notes-soft: rgba(244, 114, 182, 0.2);
+  --sec-payments: #34d399; --sec-payments-soft: rgba(52, 211, 153, 0.2);
+  --sec-reports: #fbbf24; --sec-reports-soft: rgba(251, 191, 36, 0.2);
+  --sec-settings: #94a3b8; --sec-settings-soft: rgba(148, 163, 184, 0.2);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.7);
+  --accent-glow: rgba(59, 130, 246, 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -361,7 +411,10 @@ svg { width: 16px; height: 16px; flex-shrink: 0; }
 .card-link:hover { text-decoration: underline; }
 .card-body { padding: 20px; }
 
-.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+/* auto-fit rather than a hardcoded column count so a page with 5 stat
+   cards (Dashboard, once Total Payable is added) wraps as gracefully as
+   the 4-card pages (Reports) — no per-page override needed either way. */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -627,39 +680,120 @@ table.table a:hover { text-decoration: underline; }
 /* ---------- Filter chips row already covered by .chip-row / .chip ---------- */
 
 /* ---------- Line items editor ---------- */
-.line-items { display: flex; flex-direction: column; gap: 8px; }
+/* One unified panel instead of a loose stack of separately-boxed fields:
+   the whole list — header, every row, the "Add line item" action — lives
+   inside one bordered, rounded container with thin row dividers, like a
+   single clean table. Individual inputs stay borderless/transparent until
+   hovered or focused (see ".line-item-row .input" below), so a row with
+   4-6 fields in it reads as one line of text rather than a cluster of
+   separately-boxed inputs. This same component backs both the invoice
+   line items (editor.js) and the purchase-order line items (po-editor.js)
+   editors, so the redesign applies to both automatically. */
+.line-items {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
 .line-items-head {
   display: grid; grid-template-columns: 1fr 70px 110px 110px 32px; gap: 10px;
-  padding: 0 2px; font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+  padding: 10px 16px; font-size: 11px; font-weight: 650; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
 }
 .line-item-row {
   display: grid; grid-template-columns: 1fr 70px 110px 110px 32px; gap: 10px; align-items: center;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border);
 }
+.line-item-row:hover { background: var(--surface-hover); }
 /* Editable rows carry one extra column (the item picker) that the
    read-only summary rows don't — give them their own 6-column template
-   instead of overflowing the 5-column one above. */
+   instead of overflowing the 5-column one above. 148px (not the old
+   fixed 200px holding a native <select>) is sized for the compact
+   "Choose item" trigger button below, which never overflows its column
+   the way a long <option> label used to — that mismatch was what made
+   rows look like differently-sized boxes stacked together. */
 .line-items-head-editable,
 .line-item-row-editable {
-  grid-template-columns: 180px 1fr 70px 110px 110px 32px;
+  grid-template-columns: 148px 1fr 70px 110px 110px 32px;
 }
+
+/* The per-row item picker trigger — replaces what used to be a native
+   <select> crammed with "name (sku) — price, stock" in one unbroken
+   line. Same visual weight as the boxless inputs beside it (see
+   ".line-item-row .input" below) until hovered/focused, so the row still
+   reads as one line rather than a button awkwardly wedged in. */
+.line-item-choose-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
+  padding: 7px 8px; font: inherit; font-size: 12.5px; color: var(--text-secondary); cursor: pointer;
+  text-align: left;
+}
+.line-item-choose-btn.has-item { color: var(--text); font-weight: 600; }
+.line-item-choose-btn:hover, .line-item-choose-btn:focus-visible {
+  background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none;
+}
+.line-item-choose-btn svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-tertiary); }
+.line-item-choose-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Catalog picker modal (invoice items, PO items, BOM materials) ---------- */
+/* One shared searchable picker (MFGUI.openCatalogPickerModal) instead of
+   a native <select> full of "name (sku) — price, stock" text — used
+   anywhere a row needs to choose from a product/material catalog. */
+.picker-search { margin-bottom: 12px; }
+.picker-list { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow-y: auto; margin: -4px; padding: 4px; }
+.picker-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+}
+.picker-row-info { flex: 1; min-width: 0; }
+.picker-row-info .name { font-weight: 600; font-size: 13px; }
+.picker-row-info .meta { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; }
+.picker-row-qty { width: 72px; flex-shrink: 0; }
+.picker-row-qty input { text-align: center; }
+.picker-row .btn { flex-shrink: 0; }
+.picker-row.picked { border-color: var(--success); background: var(--success-soft); }
+.picker-empty { text-align: center; padding: 24px 12px; color: var(--text-tertiary); font-size: 12.5px; }
 .line-item-amount { text-align: right; font-size: 13px; font-weight: 600; padding-right: 4px; }
 .line-item-field { min-width: 0; }
 .line-item-field-label { display: none; }
+
+/* Boxless-until-touched: a plain select/input inside a line-item row has
+   no visible border or fill, so the row reads as one line of data. A
+   light box appears on hover, and the normal accent focus ring appears on
+   focus, so the editable area is still obvious once you interact with it. */
+.line-item-row .input {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 7px 8px;
+}
+.line-item-row .input:hover { background: var(--surface); border-color: var(--border); }
+.line-item-row .input:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.line-items-footer { padding: 10px 12px; background: var(--surface-2); display: flex; gap: 8px; flex-wrap: wrap; }
 .add-line-btn {
-  align-self: flex-start; margin-top: 2px;
+  flex: 1; min-width: 160px; justify-content: center;
   border: 1px dashed var(--border-strong); background: transparent; color: var(--text-secondary);
   padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px;
 }
-.add-line-btn:hover { border-color: var(--accent); color: var(--text); }
+.add-line-btn:hover { border-color: var(--accent); color: var(--text); background: var(--surface-hover); }
 .add-line-btn svg { width: 14px; height: 14px; }
+.add-line-btn.primary { border-style: solid; border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); }
+.add-line-btn.primary:hover { background: var(--accent-soft); filter: brightness(1.15); }
 
 /* Below ~700px a 5-6 column grid doesn't fit a phone screen, and letting
    it overflow-scroll (like .table-wrap) would make the app's core
    editing workflow — typing invoice line items — miserable. Reflow each
-   row into a labeled vertical card instead; the stock hint stays right
-   under the description field where it already sits. */
+   row into its own labeled card instead (the single-panel treatment above
+   is a desktop-only trick); the stock hint stays right under the
+   description field where it already sits. Inputs go back to a visible
+   box here since there's no persistent header row labeling each column. */
 @media (max-width: 700px) {
+  .line-items { border: none; border-radius: 0; background: transparent; gap: 10px; }
   .line-items-head { display: none; }
   .line-item-row,
   .line-item-row-editable,
@@ -671,6 +805,11 @@ table.table a:hover { text-decoration: underline; }
     border-radius: var(--radius);
     background: var(--surface-2);
     position: relative;
+  }
+  .line-item-row:hover { background: var(--surface-2); }
+  .line-item-row .input,
+  .line-item-row .input:hover {
+    background: var(--surface); border-color: var(--border-strong); padding: 9px 12px;
   }
   .line-item-field-label {
     display: block;
@@ -693,6 +832,7 @@ table.table a:hover { text-decoration: underline; }
     top: 12px;
     right: 12px;
   }
+  .line-items-footer { padding: 0; background: transparent; }
 }
 
 /* ---------- Totals summary ---------- */
@@ -806,6 +946,24 @@ table.table a:hover { text-decoration: underline; }
 .bom-card-body { padding: 0 20px 20px; border-top: 1px solid var(--border); }
 .bom-card-body #bomEditorContainer { padding-top: 16px; }
 .bom-card-footer { display: flex; gap: 10px; margin-top: 14px; }
+
+/* ---------- Purchase order attachments (po-editor.html) ---------- */
+.attachment-list { display: flex; flex-direction: column; gap: 8px; }
+.attachment-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.attachment-thumb {
+  width: 36px; height: 36px; border-radius: var(--radius-sm); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--text-tertiary);
+  overflow: hidden;
+}
+.attachment-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.attachment-thumb svg { width: 18px; height: 18px; }
 
 </style>
 </head>
@@ -930,13 +1088,10 @@ table.table a:hover { text-decoration: underline; }
     customSymbol: "",
     theme: "dark",
     defaultTaxRate: 0,
-    taxPresets: [
-      { id: "preset-no-tax", label: "No tax", rate: 0 },
-      { id: "preset-5", label: "5%", rate: 5 },
-      { id: "preset-10", label: "10%", rate: 10 },
-      { id: "preset-15", label: "15%", rate: 15 },
-      { id: "preset-20", label: "20%", rate: 20 },
-    ],
+    // What to call it on invoices and in Settings — VAT, GST, Sales Tax,
+    // HST, whatever the business's own jurisdiction uses. One rate, one
+    // name the user writes themselves, rather than a fixed list of presets.
+    taxLabel: "Tax",
     paymentInstructions: "Payment due within the terms stated above. Thank you for your business.",
     invoicePrefix: "INV",
     nextInvoiceSeq: 1001,
@@ -963,9 +1118,20 @@ table.table a:hover { text-decoration: underline; }
       movements: [],
       vendors: [],
       purchaseOrders: [],
+      vendorPayments: [],
       settings: Object.assign({}, DEFAULT_SETTINGS),
     };
   }
+
+  // Attachments (delivery notes, vendor invoices, etc.) live inline on a
+  // purchase order's own `attachments` array, stored as base64 data URLs —
+  // this app has no server, so "storing a file" means embedding it in the
+  // same JSON blob everything else lives in. Capped both per-file and per-
+  // order so one enthusiastic upload can't blow the browser's localStorage
+  // quota for the whole app; exported as constants so the UI can quote the
+  // exact same numbers back to the user rather than hardcoding them twice.
+  var ATTACHMENT_MAX_BYTES = 1500000; // 1.5MB, matches the existing logo-upload cap in settings.js
+  var ATTACHMENT_MAX_COUNT = 5;
 
   // ---- in-memory fallback in case localStorage is unavailable
   // (private browsing, disabled storage, etc.)
@@ -998,8 +1164,13 @@ table.table a:hover { text-decoration: underline; }
   function normalize(parsed) {
     var base = emptyData();
     return Object.assign({}, base, parsed, {
+      // taxPresets (a list of named quick-pick rates) is retired in favor
+      // of one plain taxLabel string — old data that still has a presets
+      // array just has it quietly dropped here rather than migrated,
+      // since it was a UI convenience list, not a financial record.
       settings: Object.assign({}, DEFAULT_SETTINGS, parsed.settings || {}, {
-        taxPresets: (parsed.settings && parsed.settings.taxPresets) || DEFAULT_SETTINGS.taxPresets,
+        taxLabel: (parsed.settings && parsed.settings.taxLabel) || DEFAULT_SETTINGS.taxLabel,
+        taxPresets: undefined,
       }),
       items: parsed.items || [],
       productionOrders: parsed.productionOrders || [],
@@ -1009,7 +1180,14 @@ table.table a:hover { text-decoration: underline; }
       creditNotes: parsed.creditNotes || [],
       movements: parsed.movements || [],
       vendors: parsed.vendors || [],
-      purchaseOrders: parsed.purchaseOrders || [],
+      // Every purchase order gets a normalized `attachments` array even if
+      // it predates this feature (`|| []` on each record, not just the
+      // list as a whole), so every other call site can assume the field
+      // always exists rather than guarding it individually.
+      purchaseOrders: (parsed.purchaseOrders || []).map(function (po) {
+        return Object.assign({ attachments: [] }, po, { attachments: po.attachments || [] });
+      }),
+      vendorPayments: parsed.vendorPayments || [],
     });
   }
 
@@ -1506,6 +1684,7 @@ table.table a:hover { text-decoration: underline; }
       id: uid(),
       status: wantsSend ? "sent" : "draft",
       items: (input.items || []).map(function (l) { return Object.assign({ receivedQty: 0 }, l); }),
+      attachments: [],
       createdAt: now,
       updatedAt: now,
       sentAt: wantsSend ? now : null,
@@ -1551,9 +1730,42 @@ table.table a:hover { text-decoration: underline; }
     if (!po) return { ok: false, error: "Purchase order not found." };
     var anyReceived = (po.items || []).some(function (l) { return (l.receivedQty || 0) > 0; });
     if (anyReceived) return { ok: false, error: "This purchase order already has received stock recorded against it — cancel it instead to keep that history." };
+    // Same "financial history must never silently vanish" reasoning as the
+    // receiving guard above — a deleted PO would take any vendor payments
+    // recorded against it with it, so block the delete instead and point
+    // at Cancel, which keeps both the order and its payment history intact.
+    var anyPaid = (data.vendorPayments || []).some(function (p) { return p.purchaseOrderId === id; });
+    if (anyPaid) return { ok: false, error: "This purchase order has vendor payments recorded against it — cancel it instead to keep that payment history." };
     data.purchaseOrders = data.purchaseOrders.filter(function (x) { return x.id !== id; });
     persist();
     return { ok: true };
+  }
+  // Attachments (delivery notes, the vendor's own invoice, anything worth
+  // keeping with the order) live on the PO record itself. Enforced here as
+  // well as in the UI's file-size check, so the cap holds even if a future
+  // caller skips the UI layer.
+  function addPoAttachment(poId, attachment) {
+    var po = findPurchaseOrder(poId);
+    if (!po) return { ok: false, error: "Purchase order not found." };
+    po.attachments = po.attachments || [];
+    if (po.attachments.length >= ATTACHMENT_MAX_COUNT) {
+      return { ok: false, error: "Each purchase order can hold up to " + ATTACHMENT_MAX_COUNT + " attachments — remove one first." };
+    }
+    if ((attachment.size || 0) > ATTACHMENT_MAX_BYTES) {
+      return { ok: false, error: "That file is too large — attachments are capped at " + Math.round(ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB each (this app stores everything in the browser, with no server behind it)." };
+    }
+    var rec = Object.assign({}, attachment, { id: uid(), uploadedAt: nowISO() });
+    po.attachments.push(rec);
+    po.updatedAt = nowISO();
+    persist();
+    return { ok: true, attachment: rec };
+  }
+  function removePoAttachment(poId, attachmentId) {
+    var po = findPurchaseOrder(poId);
+    if (!po) return;
+    po.attachments = (po.attachments || []).filter(function (a) { return a.id !== attachmentId; });
+    po.updatedAt = nowISO();
+    persist();
   }
   // The single stock-mutating step for purchasing — deliberately mirrors
   // completeProductionOrder()'s discipline of one function, one place
@@ -1592,6 +1804,58 @@ table.table a:hover { text-decoration: underline; }
     var totalOrdered = round2((po.items || []).reduce(function (sum, l) { return sum + (Number(l.quantity) || 0); }, 0));
     var totalReceived = round2((po.items || []).reduce(function (sum, l) { return sum + (Number(l.receivedQty) || 0); }, 0));
     return { totalOrdered: totalOrdered, totalReceived: totalReceived, remaining: round2(Math.max(0, totalOrdered - totalReceived)) };
+  }
+
+  // ---------- accounts payable (vendor payments against purchase orders) ----------
+  // Deliberately mirrors the customer-facing payments model (amountPaid /
+  // buildInvoiceRow above) rather than introducing a different shape:
+  // {id, purchaseOrderId, amount, date, method, note, createdAt}. Payment
+  // is NOT gated on receiving progress — a deposit before anything ships,
+  // or paying in full on receipt, are both real small-business workflows,
+  // so any sent/partial/received order can carry payments regardless of
+  // how much of it has physically arrived.
+  function recordVendorPayment(input) {
+    var rec = Object.assign({}, input, { id: uid(), createdAt: nowISO() });
+    data.vendorPayments.unshift(rec);
+    persist();
+    return rec;
+  }
+  function deleteVendorPayment(id) {
+    data.vendorPayments = data.vendorPayments.filter(function (x) { return x.id !== id; });
+    persist();
+  }
+  function poAmountPaid(poId) {
+    return round2(
+      (data.vendorPayments || []).filter(function (p) { return p.purchaseOrderId === poId; }).reduce(function (sum, p) { return sum + p.amount; }, 0)
+    );
+  }
+  function poBalanceDue(po) {
+    return round2(computePoTotal(po) - poAmountPaid(po.id));
+  }
+  // A draft or cancelled order is never a real payable — nothing has been
+  // committed to (draft) or the obligation was closed out (cancelled).
+  function poPaymentStatus(po) {
+    if (po.status === "draft" || po.status === "cancelled") return "n/a";
+    var total = computePoTotal(po);
+    if (total <= 0) return "n/a";
+    var paid = poAmountPaid(po.id);
+    if (paid >= total) return "paid";
+    if (paid > 0) return "partial";
+    return "unpaid";
+  }
+  function vendorPayable(vendorId) {
+    return round2(
+      data.purchaseOrders
+        .filter(function (po) { return po.vendorId === vendorId && po.status !== "draft" && po.status !== "cancelled"; })
+        .reduce(function (sum, po) { return sum + poBalanceDue(po); }, 0)
+    );
+  }
+  function totalPayable() {
+    return round2(
+      data.purchaseOrders
+        .filter(function (po) { return po.status !== "draft" && po.status !== "cancelled"; })
+        .reduce(function (sum, po) { return sum + poBalanceDue(po); }, 0)
+    );
   }
 
   // ---------- invoices ----------
@@ -1775,26 +2039,6 @@ table.table a:hover { text-decoration: underline; }
     data.settings = Object.assign({}, data.settings, patch);
     persist();
   }
-  // Stored on settings.taxPresets. Always builds new arrays/objects
-  // rather than mutating in place, so a fresh install's default presets
-  // (shared object literal in DEFAULT_SETTINGS) are never accidentally
-  // edited through a live data reference.
-  function addTaxPreset(input) {
-    var rec = Object.assign({}, input, { id: uid() });
-    data.settings.taxPresets = (data.settings.taxPresets || []).concat([rec]);
-    persist();
-    return rec;
-  }
-  function updateTaxPreset(id, patch) {
-    data.settings.taxPresets = (data.settings.taxPresets || []).map(function (x) {
-      return x.id === id ? Object.assign({}, x, patch) : x;
-    });
-    persist();
-  }
-  function deleteTaxPreset(id) {
-    data.settings.taxPresets = (data.settings.taxPresets || []).filter(function (x) { return x.id !== id; });
-    persist();
-  }
 
   // ---------- formatting ----------
   var CURRENCY_META = {
@@ -1926,6 +2170,18 @@ table.table a:hover { text-decoration: underline; }
     deletePurchaseOrder: deletePurchaseOrder,
     receivePurchaseOrder: receivePurchaseOrder,
     poReceivingProgress: poReceivingProgress,
+    addPoAttachment: addPoAttachment,
+    removePoAttachment: removePoAttachment,
+    ATTACHMENT_MAX_BYTES: ATTACHMENT_MAX_BYTES,
+    ATTACHMENT_MAX_COUNT: ATTACHMENT_MAX_COUNT,
+
+    recordVendorPayment: recordVendorPayment,
+    deleteVendorPayment: deleteVendorPayment,
+    poAmountPaid: poAmountPaid,
+    poBalanceDue: poBalanceDue,
+    poPaymentStatus: poPaymentStatus,
+    vendorPayable: vendorPayable,
+    totalPayable: totalPayable,
 
     nextInvoiceNumber: nextInvoiceNumber,
     addInvoice: addInvoice,
@@ -1948,9 +2204,6 @@ table.table a:hover { text-decoration: underline; }
     unapplyCreditNote: unapplyCreditNote,
 
     updateSettings: updateSettings,
-    addTaxPreset: addTaxPreset,
-    updateTaxPreset: updateTaxPreset,
-    deleteTaxPreset: deleteTaxPreset,
 
     formatCurrency: formatCurrency,
     formatDate: formatDate,
@@ -2017,6 +2270,8 @@ table.table a:hover { text-decoration: underline; }
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
     vendors: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M14 9h4l3 3v5h-3"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="17.5" cy="17.5" r="1.5"/></svg>',
     purchaseOrders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><path d="M9 12h6M9 16h6M9 8h2"/></svg>',
+    paperclip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.5-9.2 9.2a5.4 5.4 0 0 1-7.6-7.6l9.2-9.2a3.6 3.6 0 0 1 5.1 5.1l-9.2 9.2a1.8 1.8 0 0 1-2.5-2.5l8.5-8.5"/></svg>',
+    fileText: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5Z"/><path d="M14 2v6h6"/><path d="M8.5 13h7M8.5 17h5"/></svg>',
   };
 
   var NAV_ITEMS = [
@@ -2025,6 +2280,7 @@ table.table a:hover { text-decoration: underline; }
     { key: "bom", label: "Bill of Materials", href: "bom.html", icon: ICONS.flask },
     { key: "vendors", label: "Vendors", href: "vendors.html", icon: ICONS.vendors },
     { key: "purchase-orders", label: "Purchase Orders", href: "purchase-orders.html", icon: ICONS.purchaseOrders },
+    { key: "accounts-payable", label: "Accounts Payable", href: "accounts-payable.html", icon: ICONS.wallet },
     { key: "production", label: "Production", href: "production.html", icon: ICONS.production },
     { key: "customers", label: "Customers", href: "customers.html", icon: ICONS.customers },
     { key: "invoices", label: "Invoices", href: "invoices.html", icon: ICONS.invoices },
@@ -2253,6 +2509,64 @@ table.table a:hover { text-decoration: underline; }
     return '<span class="pill ' + cls + '">' + escapeHtml(label) + "</span>";
   }
 
+  // Accounts-payable status for a purchase order — distinct from
+  // purchaseOrderStatusBadge above, which tracks physical receiving
+  // progress (draft/sent/partial/received). This tracks money instead:
+  // whether the vendor has been paid, independent of how much has arrived.
+  var PAY_STATUS_LABELS = { unpaid: "Unpaid", partial: "Partially Paid", paid: "Paid", "n/a": "—" };
+  var PAY_STATUS_PILL_CLASS = { unpaid: "pill-danger", partial: "pill-warning", paid: "pill-success", "n/a": "pill-neutral" };
+  function paymentStatusBadge(status) {
+    var cls = PAY_STATUS_PILL_CLASS[status] || "pill-neutral";
+    var label = PAY_STATUS_LABELS[status] || status;
+    return '<span class="pill ' + cls + '">' + escapeHtml(label) + "</span>";
+  }
+
+  // ---------- vendor payment modal (shared by po-editor.js and accounts-payable.js) ----------
+  // Mirrors the invoice editor's own openPaymentModal exactly (same fields,
+  // same method list, same "amount pre-filled with the balance due"
+  // pattern) so recording money in either direction feels identical.
+  function openVendorPaymentModal(po, onSaved) {
+    var balance = MFG.poBalanceDue(po);
+    var body =
+      '<p class="text-tertiary" style="font-size:12px;">Balance due: <strong style="color:var(--text);">' + MFG.formatCurrency(balance, po.currency) + "</strong></p>" +
+      '<div class="field"><label>Amount<span class="req">*</span></label><input class="input" type="number" min="0" step="any" id="vpAmount" value="' + balance + '"/>' +
+      '<span class="error hidden" id="vpAmountErr">Enter an amount greater than zero.</span></div>' +
+      '<div class="form-grid">' +
+        '<div class="field"><label>Date</label><input class="input" type="date" id="vpDate" value="' + MFG.todayISO() + '"/></div>' +
+        '<div class="field"><label>Method</label><select class="input" id="vpMethod">' +
+          ["Bank Transfer", "Credit Card", "Cash", "Check", "PayPal", "Other"].map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("") +
+        "</select></div>" +
+      "</div>" +
+      '<div class="field"><label>Note</label><textarea class="input" id="vpNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>';
+
+    openModal({
+      title: "Record Payment — " + po.number,
+      body: body,
+      footer: '<button class="btn btn-ghost" id="cancelModalBtn">Cancel</button><button class="btn btn-primary" id="saveBtn">Record Payment</button>',
+      onMount: function (root, close) {
+        root.querySelector("#cancelModalBtn").addEventListener("click", close);
+        root.querySelector("#saveBtn").addEventListener("click", function () {
+          var amount = Number(root.querySelector("#vpAmount").value);
+          if (!amount || amount <= 0) {
+            root.querySelector("#vpAmount").classList.add("has-error");
+            root.querySelector("#vpAmountErr").classList.remove("hidden");
+            return;
+          }
+          MFG.recordVendorPayment({
+            purchaseOrderId: po.id,
+            amount: amount,
+            date: root.querySelector("#vpDate").value || MFG.todayISO(),
+            method: root.querySelector("#vpMethod").value,
+            note: root.querySelector("#vpNote").value.trim() || undefined,
+          });
+          toast("Payment recorded.");
+          close();
+          if (onSaved) onSaved();
+        });
+      },
+    });
+  }
+
   function emptyState(iconKey, title, desc, actionHtml) {
     return (
       '<div class="empty"><div class="icon-wrap">' + (ICONS[iconKey] || "") + "</div>" +
@@ -2260,6 +2574,97 @@ table.table a:hover { text-decoration: underline; }
       (actionHtml ? '<div class="mt-2">' + actionHtml + "</div>" : "") +
       "</div>"
     );
+  }
+
+  // ---------- shared catalog picker modal ----------
+  // A searchable, properly-aligned list to choose from instead of a
+  // native <select> full of "name (sku) — price, stock" crammed onto one
+  // unbreakable line — used by the invoice/PO line item editors (to pick
+  // a product or material for a row) and the BOM editor (to pick a
+  // material for a line), so all three get the same easier picking flow.
+  //
+  // opts:
+  //   title, searchPlaceholder, emptyText
+  //   entries: [{ id, name, meta }]         — meta is a small secondary line (price, stock, etc.)
+  //   showQty: bool                          — show a quantity field per row (used when a pick creates
+  //                                             a brand-new line, so quantity is set in the same step)
+  //   qtyDefault: number
+  //   closeAfterPick: bool                   — true for "swap this row's item" (one pick, modal closes);
+  //                                             false for "add from catalog" (stays open, add several, then Done)
+  //   onPick: function(id, qty)
+  function openCatalogPickerModal(opts) {
+    var query = "";
+    var picked = {};
+
+    function rowHtml(e) {
+      var qtyHtml = opts.showQty
+        ? '<div class="picker-row-qty"><input class="input" type="number" min="0" step="any" value="' + (opts.qtyDefault || 1) + '" data-qty="' + e.id + '" aria-label="' + escapeHtml(opts.qtyLabel || "Quantity") + '" title="' + escapeHtml(opts.qtyLabel || "Quantity") + '"/></div>'
+        : "";
+      return (
+        '<div class="picker-row' + (picked[e.id] ? " picked" : "") + '" data-entry="' + e.id + '">' +
+          '<div class="picker-row-info"><p class="name">' + escapeHtml(e.name) + '</p>' + (e.meta ? '<p class="meta">' + escapeHtml(e.meta) + "</p>" : "") + "</div>" +
+          qtyHtml +
+          '<button type="button" class="btn btn-secondary btn-sm" data-use="' + e.id + '">' + (picked[e.id] ? "Added" : (opts.showQty ? "Add" : "Use")) + "</button>" +
+        "</div>"
+      );
+    }
+
+    function listHtml() {
+      var q = query.trim().toLowerCase();
+      var filtered = !q ? opts.entries : opts.entries.filter(function (e) {
+        return (e.name + " " + (e.meta || "")).toLowerCase().indexOf(q) !== -1;
+      });
+      if (!filtered.length) return '<p class="picker-empty">' + escapeHtml(opts.emptyText || "No matches.") + "</p>";
+      return '<div class="picker-list">' + filtered.map(rowHtml).join("") + "</div>";
+    }
+
+    var body =
+      '<div class="field picker-search"><input class="input" id="pickerSearch" placeholder="' + escapeHtml(opts.searchPlaceholder || "Search…") + '" autocomplete="off"/></div>' +
+      (opts.showQty ? '<p class="text-tertiary" style="font-size:11.5px;margin:-6px 0 10px;">Set ' + escapeHtml((opts.qtyLabel || "quantity").toLowerCase()) + ', then Add. Keep going — everything you add stays in this list until you\'re done.</p>' : "") +
+      '<div id="pickerListWrap">' + listHtml() + "</div>";
+
+    return openModal({
+      title: opts.title,
+      wide: true,
+      body: body,
+      footer: opts.showQty ? '<button class="btn btn-primary" id="pickerDoneBtn">Done</button>' : '<button class="btn btn-ghost" id="pickerCancelBtn">Cancel</button>',
+      onMount: function (root, close) {
+        function bindRows() {
+          root.querySelectorAll("[data-use]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var id = btn.getAttribute("data-use");
+              var qty = 1;
+              if (opts.showQty) {
+                var qtyInput = root.querySelector('[data-qty="' + id + '"]');
+                qty = qtyInput ? (Number(qtyInput.value) || 0) : 1;
+                if (qty <= 0) { if (qtyInput) qtyInput.focus(); return; }
+              }
+              opts.onPick(id, qty);
+              if (opts.closeAfterPick) { close(); return; }
+              picked[id] = true;
+              var rowEl = root.querySelector('[data-entry="' + id + '"]');
+              if (rowEl) {
+                rowEl.classList.add("picked");
+                var useBtn = rowEl.querySelector("[data-use]");
+                if (useBtn) useBtn.textContent = "Added";
+              }
+            });
+          });
+        }
+        bindRows();
+        var searchInput = root.querySelector("#pickerSearch");
+        searchInput.focus();
+        searchInput.addEventListener("input", function () {
+          query = searchInput.value;
+          root.querySelector("#pickerListWrap").innerHTML = listHtml();
+          bindRows();
+        });
+        var cancelBtn = root.querySelector("#pickerCancelBtn");
+        if (cancelBtn) cancelBtn.addEventListener("click", close);
+        var doneBtn = root.querySelector("#pickerDoneBtn");
+        if (doneBtn) doneBtn.addEventListener("click", close);
+      },
+    });
   }
 
   // ---------- item-aware line items editor (invoice line items) ----------
@@ -2289,13 +2694,25 @@ table.table a:hover { text-decoration: underline; }
       return MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.rate || 0)), state.currency);
     }
 
-    function productOptionsHtml(selectedId) {
-      var opts = '<option value="">— custom line —</option>';
-      opts += activeProducts.map(function (p) {
-        var label = p.name + " (" + p.sku + ") — " + MFG.formatCurrency(p.sellPrice, state.currency) + ", " + MFG.formatQty(p.stockQty) + " in stock";
-        return '<option value="' + p.id + '"' + (selectedId === p.id ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
-      }).join("");
-      return opts;
+    function catalogEntries() {
+      return activeProducts.map(function (p) {
+        return { id: p.id, name: p.name + " (" + p.sku + ")", meta: MFG.formatCurrency(p.sellPrice, state.currency) + " · " + MFG.formatQty(p.stockQty) + " in stock" };
+      });
+    }
+
+    function chosenLabel(it) {
+      if (!it.productId) return "Choose item";
+      var p = (products || []).find(function (x) { return x.id === it.productId; });
+      return p ? p.name : "Item deleted";
+    }
+
+    function applyProductPick(it, pid) {
+      it.productId = pid;
+      var p = (products || []).find(function (x) { return x.id === pid; });
+      if (p) {
+        it.description = p.name;
+        it.rate = (typeof getPriceForItem === "function") ? getPriceForItem(pid, p.sellPrice) : p.sellPrice;
+      }
     }
 
     // Looks up against the full (not active-filtered) product list, since
@@ -2332,7 +2749,12 @@ table.table a:hover { text-decoration: underline; }
       }
       return (
         '<div class="line-item-row line-item-row-editable" data-row="' + it.id + '">' +
-          fieldWrapper("Item", '<select class="input" data-field="productId" aria-label="Item">' + productOptionsHtml(it.productId) + "</select>") +
+          fieldWrapper("Item",
+            '<div style="display:flex;align-items:center;gap:2px;">' +
+              '<button type="button" class="line-item-choose-btn' + (it.productId ? " has-item" : "") + '" data-choose="' + it.id + '" title="Choose from product catalog">' + ICONS.search + "<span>" + escapeHtml(chosenLabel(it)) + "</span></button>" +
+              (it.productId ? '<button type="button" class="btn-icon neutral" data-clear-item="' + it.id + '" aria-label="Clear item" title="Clear item — make this a custom line">' + ICONS.close + "</button>" : "") +
+            "</div>"
+          ) +
           fieldWrapper("Description",
             '<input class="input" data-field="description" value="' + escapeHtml(it.description || "") + '" placeholder="Item or service description" aria-label="Item description"/>' +
             (it.productId ? '<div class="line-item-stock-hint" data-stockhint>' + stockHint(it) + "</div>" : "")
@@ -2353,7 +2775,12 @@ table.table a:hover { text-decoration: underline; }
         '<div class="line-items' + (readOnly ? " line-items-readonly" : "") + '">' +
           headCols +
           state.items.map(rowHtml).join("") +
-          (readOnly ? "" : '<button type="button" class="add-line-btn" id="addLineBtn">' + ICONS.plus + " Add line item</button>") +
+          (readOnly ? "" :
+            '<div class="line-items-footer">' +
+              '<button type="button" class="add-line-btn primary" id="chooseCatalogBtn">' + ICONS.packagePlus + " Choose from catalog</button>" +
+              '<button type="button" class="add-line-btn" id="addLineBtn">' + ICONS.plus + " Add custom line</button>" +
+            "</div>"
+          ) +
         "</div>";
       if (!readOnly) bind();
     }
@@ -2362,30 +2789,12 @@ table.table a:hover { text-decoration: underline; }
       container.querySelectorAll("[data-row]").forEach(function (rowEl) {
         var id = rowEl.getAttribute("data-row");
         rowEl.querySelectorAll("[data-field]").forEach(function (input) {
-          var evt = input.tagName === "SELECT" ? "change" : "input";
-          input.addEventListener(evt, function () {
+          input.addEventListener("input", function () {
             var field = input.getAttribute("data-field");
             var it = state.items.find(function (x) { return x.id === id; });
             if (!it) return;
             if (field === "description") {
               it.description = input.value;
-            } else if (field === "productId") {
-              var pid = input.value || null;
-              it.productId = pid;
-              if (pid) {
-                var p = (products || []).find(function (x) { return x.id === pid; });
-                if (p) {
-                  it.description = p.name;
-                  it.rate = (typeof getPriceForItem === "function") ? getPriceForItem(pid, p.sellPrice) : p.sellPrice;
-                  var descInput = rowEl.querySelector('[data-field="description"]');
-                  if (descInput) descInput.value = it.description;
-                  var rateInput = rowEl.querySelector('[data-field="rate"]');
-                  if (rateInput) rateInput.value = it.rate;
-                }
-              }
-              render();
-              if (state.onChange) state.onChange(state.items);
-              return;
             } else {
               it[field] = Number(input.value) || 0;
             }
@@ -2396,6 +2805,36 @@ table.table a:hover { text-decoration: underline; }
             if (state.onChange) state.onChange(state.items);
           });
         });
+        var chooseBtn = rowEl.querySelector("[data-choose]");
+        if (chooseBtn) {
+          chooseBtn.addEventListener("click", function () {
+            openCatalogPickerModal({
+              title: "Choose an item",
+              searchPlaceholder: "Search products…",
+              emptyText: "No active products yet — add one on the Products page, or just type a description below for a custom line.",
+              entries: catalogEntries(),
+              showQty: false,
+              closeAfterPick: true,
+              onPick: function (pid) {
+                var it = state.items.find(function (x) { return x.id === id; });
+                if (!it) return;
+                applyProductPick(it, pid);
+                render();
+                if (state.onChange) state.onChange(state.items);
+              },
+            });
+          });
+        }
+        var clearBtn = rowEl.querySelector("[data-clear-item]");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", function () {
+            var it = state.items.find(function (x) { return x.id === id; });
+            if (!it) return;
+            it.productId = null;
+            render();
+            if (state.onChange) state.onChange(state.items);
+          });
+        }
         var removeBtn = rowEl.querySelector("[data-remove]");
         if (removeBtn) {
           removeBtn.addEventListener("click", function () {
@@ -2406,6 +2845,36 @@ table.table a:hover { text-decoration: underline; }
           });
         }
       });
+      var chooseCatalogBtn = container.querySelector("#chooseCatalogBtn");
+      if (chooseCatalogBtn) {
+        chooseCatalogBtn.addEventListener("click", function () {
+          openCatalogPickerModal({
+            title: "Add items from catalog",
+            searchPlaceholder: "Search products…",
+            emptyText: "No active products yet — add one on the Products page first.",
+            entries: catalogEntries(),
+            showQty: true,
+            qtyLabel: "Qty",
+            qtyDefault: 1,
+            closeAfterPick: false,
+            onPick: function (pid, qty) {
+              var p = (products || []).find(function (x) { return x.id === pid; });
+              var newItem = { id: MFG.uid(), productId: pid, description: p ? p.name : "", quantity: qty, rate: 0 };
+              applyProductPick(newItem, pid);
+              newItem.quantity = qty;
+              // A still-untouched blank starter row gets replaced instead of
+              // leaving an empty line sitting above the items just picked.
+              if (state.items.length === 1 && !state.items[0].productId && !state.items[0].description && !state.items[0].rate) {
+                state.items[0] = newItem;
+              } else {
+                state.items.push(newItem);
+              }
+              render();
+              if (state.onChange) state.onChange(state.items);
+            },
+          });
+        });
+      }
       var addBtn = container.querySelector("#addLineBtn");
       if (addBtn) {
         addBtn.addEventListener("click", function () {
@@ -2444,12 +2913,16 @@ table.table a:hover { text-decoration: underline; }
     // full catalog inside materialOptionsHtml on every line's render.
     var activeMaterials = (materials || []).filter(function (m) { return m.active; });
 
-    function materialOptionsHtml(selectedId) {
-      var opts = '<option value="">Choose a material…</option>';
-      opts += activeMaterials.map(function (m) {
-        return '<option value="' + m.id + '"' + (selectedId === m.id ? " selected" : "") + ">" + escapeHtml(m.name + " (" + m.sku + ") — " + MFG.formatQty(m.stockQty) + " " + m.unit + " in stock, " + MFG.formatCurrency(m.costPrice) + "/" + m.unit) + "</option>";
-      }).join("");
-      return opts;
+    function catalogEntries() {
+      return activeMaterials.map(function (m) {
+        return { id: m.id, name: m.name + " (" + m.sku + ")", meta: MFG.formatCurrency(m.costPrice) + "/" + m.unit + " · " + MFG.formatQty(m.stockQty) + " " + m.unit + " in stock" };
+      });
+    }
+
+    function chosenLabel(materialId) {
+      if (!materialId) return "Choose material";
+      var m = (materials || []).find(function (x) { return x.id === materialId; });
+      return m ? m.name : "Material deleted";
     }
 
     function estimatedCost() {
@@ -2462,7 +2935,9 @@ table.table a:hover { text-decoration: underline; }
     function rowHtml(line, idx) {
       return (
         '<div class="bom-row" data-idx="' + idx + '">' +
-          '<select class="input" data-field="materialId" aria-label="Material">' + materialOptionsHtml(line.materialId) + "</select>" +
+          '<div style="display:flex;align-items:center;gap:2px;">' +
+            '<button type="button" class="line-item-choose-btn' + (line.materialId ? " has-item" : "") + '" data-choose="' + idx + '" title="Choose from material catalog">' + ICONS.search + "<span>" + escapeHtml(chosenLabel(line.materialId)) + "</span></button>" +
+          "</div>" +
           '<input class="input" type="number" min="0" step="any" data-field="qtyPerUnit" value="' + line.qtyPerUnit + '" aria-label="Quantity per unit"/>' +
           '<button type="button" class="btn-icon" data-remove aria-label="Remove material line">' + ICONS.trash + "</button>" +
         "</div>"
@@ -2479,13 +2954,13 @@ table.table a:hover { text-decoration: underline; }
 
     function render() {
       if (!state.lines.length) {
-        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;margin-bottom:10px;">No materials added yet — this item has no Bill of Materials, so Production can\'t make it. Add at least one material below.</p>' +
-          '<button type="button" class="btn btn-secondary btn-sm" id="bomAddBtn">' + ICONS.plus + " Add material</button>";
+        container.innerHTML = '<p class="text-tertiary" style="font-size:12.5px;margin-bottom:10px;">No materials added yet — this item has no Bill of Materials, so Production can\'t make it. Choose at least one material below.</p>' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="bomAddBtn">' + ICONS.packagePlus + " Choose material</button>";
       } else {
         container.innerHTML =
           '<div class="bom-head"><span>Material</span><span>Qty per unit made</span><span></span></div>' +
           state.lines.map(rowHtml).join("") +
-          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="bomAddBtn">' + ICONS.plus + " Add material</button>" +
+          '<button type="button" class="btn btn-secondary btn-sm mt-1" id="bomAddBtn">' + ICONS.packagePlus + " Choose material</button>" +
           costFooterHtml();
       }
       bind();
@@ -2500,26 +2975,57 @@ table.table a:hover { text-decoration: underline; }
       container.querySelectorAll("[data-idx]").forEach(function (rowEl) {
         var idx = Number(rowEl.getAttribute("data-idx"));
         rowEl.querySelectorAll("[data-field]").forEach(function (input) {
-          var isSelect = input.tagName === "SELECT";
-          input.addEventListener(isSelect ? "change" : "input", function () {
+          input.addEventListener("input", function () {
             var field = input.getAttribute("data-field");
-            state.lines[idx][field] = field === "qtyPerUnit" ? Number(input.value) || 0 : input.value;
-            // A material select swap can change every row's option list
-            // (nothing here depends on that today, but keeps this in step
-            // with the invoice line-items editor's pattern) — safe to
-            // re-render fully. The qty input fires on every keystroke, so
-            // it only patches the cost footer text in place; a full
-            // render() there would rebuild the DOM mid-keystroke and throw
-            // focus out of the field.
-            if (isSelect) render(); else updateFooterInPlace();
+            state.lines[idx][field] = Number(input.value) || 0;
+            // The qty input fires on every keystroke, so it only patches
+            // the cost footer text in place — a full render() there would
+            // rebuild the DOM mid-keystroke and throw focus out of the field.
+            updateFooterInPlace();
             if (state.onChange) state.onChange(state.lines);
           });
         });
+        var chooseBtn = rowEl.querySelector("[data-choose]");
+        if (chooseBtn) {
+          chooseBtn.addEventListener("click", function () {
+            openCatalogPickerModal({
+              title: "Choose a material",
+              searchPlaceholder: "Search materials…",
+              emptyText: "No active materials yet — add one on the Products page first.",
+              entries: catalogEntries(),
+              showQty: false,
+              closeAfterPick: true,
+              onPick: function (mid) {
+                state.lines[idx].materialId = mid;
+                render();
+                if (state.onChange) state.onChange(state.lines);
+              },
+            });
+          });
+        }
         var removeBtn = rowEl.querySelector("[data-remove]");
         if (removeBtn) removeBtn.addEventListener("click", function () { state.lines.splice(idx, 1); render(); if (state.onChange) state.onChange(state.lines); });
       });
       var addBtn = container.querySelector("#bomAddBtn");
-      if (addBtn) addBtn.addEventListener("click", function () { state.lines.push({ materialId: "", qtyPerUnit: 1 }); render(); if (state.onChange) state.onChange(state.lines); });
+      if (addBtn) {
+        addBtn.addEventListener("click", function () {
+          openCatalogPickerModal({
+            title: "Add materials to this Bill of Materials",
+            searchPlaceholder: "Search materials…",
+            emptyText: "No active materials yet — add one on the Products page first.",
+            entries: catalogEntries(),
+            showQty: true,
+            qtyLabel: "Qty per unit",
+            qtyDefault: 1,
+            closeAfterPick: false,
+            onPick: function (mid, qty) {
+              state.lines.push({ materialId: mid, qtyPerUnit: qty });
+              render();
+              if (state.onChange) state.onChange(state.lines);
+            },
+          });
+        });
+      }
     }
 
     render();
@@ -2697,13 +3203,25 @@ table.table a:hover { text-decoration: underline; }
       return MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.unitCost || 0)), state.currency);
     }
 
-    function materialOptionsHtml(selectedId) {
-      var opts = '<option value="">— custom line —</option>';
-      opts += activeMaterials.map(function (m) {
-        var label = m.name + " (" + m.sku + ") — " + MFG.formatCurrency(m.costPrice, state.currency) + "/" + m.unit + ", " + MFG.formatQty(m.stockQty) + " " + m.unit + " in stock";
-        return '<option value="' + m.id + '"' + (selectedId === m.id ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
-      }).join("");
-      return opts;
+    function catalogEntries() {
+      return activeMaterials.map(function (m) {
+        return { id: m.id, name: m.name + " (" + m.sku + ")", meta: MFG.formatCurrency(m.costPrice, state.currency) + "/" + m.unit + " · " + MFG.formatQty(m.stockQty) + " " + m.unit + " in stock" };
+      });
+    }
+
+    function chosenLabel(it) {
+      if (!it.materialId) return "Choose item";
+      var m = (materials || []).find(function (x) { return x.id === it.materialId; });
+      return m ? m.name : "Item deleted";
+    }
+
+    function applyMaterialPick(it, mid) {
+      it.materialId = mid;
+      var m = (materials || []).find(function (x) { return x.id === mid; });
+      if (m) {
+        it.description = m.name;
+        it.unitCost = (typeof getCostForItem === "function") ? getCostForItem(mid, m.costPrice) : m.costPrice;
+      }
     }
 
     function fieldWrapper(labelText, innerHtml) {
@@ -2729,7 +3247,12 @@ table.table a:hover { text-decoration: underline; }
       }
       return (
         '<div class="line-item-row line-item-row-editable" data-row="' + it.id + '">' +
-          fieldWrapper("Item", '<select class="input" data-field="materialId" aria-label="Item">' + materialOptionsHtml(it.materialId) + "</select>") +
+          fieldWrapper("Item",
+            '<div style="display:flex;align-items:center;gap:2px;">' +
+              '<button type="button" class="line-item-choose-btn' + (it.materialId ? " has-item" : "") + '" data-choose="' + it.id + '" title="Choose from material catalog">' + ICONS.search + "<span>" + escapeHtml(chosenLabel(it)) + "</span></button>" +
+              (it.materialId ? '<button type="button" class="btn-icon neutral" data-clear-item="' + it.id + '" aria-label="Clear item" title="Clear item — make this a custom line">' + ICONS.close + "</button>" : "") +
+            "</div>"
+          ) +
           fieldWrapper("Description", '<input class="input" data-field="description" value="' + escapeHtml(it.description || "") + '" placeholder="Item or line description" aria-label="Line description"/>') +
           fieldWrapper("Qty", '<input class="input" type="number" min="0" step="any" data-field="quantity" value="' + it.quantity + '" aria-label="Quantity"/>') +
           fieldWrapper("Unit Cost", '<input class="input" type="number" min="0" step="any" data-field="unitCost" value="' + it.unitCost + '" aria-label="Unit cost"/>') +
@@ -2747,7 +3270,12 @@ table.table a:hover { text-decoration: underline; }
         '<div class="line-items' + (readOnly ? " line-items-readonly" : "") + '">' +
           headCols +
           state.items.map(rowHtml).join("") +
-          (readOnly ? "" : '<button type="button" class="add-line-btn" id="addLineBtn">' + ICONS.plus + " Add line item</button>") +
+          (readOnly ? "" :
+            '<div class="line-items-footer">' +
+              '<button type="button" class="add-line-btn primary" id="chooseCatalogBtn">' + ICONS.packagePlus + " Choose from catalog</button>" +
+              '<button type="button" class="add-line-btn" id="addLineBtn">' + ICONS.plus + " Add custom line</button>" +
+            "</div>"
+          ) +
         "</div>";
       if (!readOnly) bind();
     }
@@ -2756,30 +3284,12 @@ table.table a:hover { text-decoration: underline; }
       container.querySelectorAll("[data-row]").forEach(function (rowEl) {
         var id = rowEl.getAttribute("data-row");
         rowEl.querySelectorAll("[data-field]").forEach(function (input) {
-          var evt = input.tagName === "SELECT" ? "change" : "input";
-          input.addEventListener(evt, function () {
+          input.addEventListener("input", function () {
             var field = input.getAttribute("data-field");
             var it = state.items.find(function (x) { return x.id === id; });
             if (!it) return;
             if (field === "description") {
               it.description = input.value;
-            } else if (field === "materialId") {
-              var mid = input.value || null;
-              it.materialId = mid;
-              if (mid) {
-                var m = (materials || []).find(function (x) { return x.id === mid; });
-                if (m) {
-                  it.description = m.name;
-                  it.unitCost = (typeof getCostForItem === "function") ? getCostForItem(mid, m.costPrice) : m.costPrice;
-                  var descInput = rowEl.querySelector('[data-field="description"]');
-                  if (descInput) descInput.value = it.description;
-                  var costInput = rowEl.querySelector('[data-field="unitCost"]');
-                  if (costInput) costInput.value = it.unitCost;
-                }
-              }
-              render();
-              if (state.onChange) state.onChange(state.items);
-              return;
             } else {
               it[field] = Number(input.value) || 0;
             }
@@ -2788,6 +3298,36 @@ table.table a:hover { text-decoration: underline; }
             if (state.onChange) state.onChange(state.items);
           });
         });
+        var chooseBtn = rowEl.querySelector("[data-choose]");
+        if (chooseBtn) {
+          chooseBtn.addEventListener("click", function () {
+            openCatalogPickerModal({
+              title: "Choose an item",
+              searchPlaceholder: "Search materials…",
+              emptyText: "No active materials yet — add one on the Products page, or just type a description below for a custom line.",
+              entries: catalogEntries(),
+              showQty: false,
+              closeAfterPick: true,
+              onPick: function (mid) {
+                var it = state.items.find(function (x) { return x.id === id; });
+                if (!it) return;
+                applyMaterialPick(it, mid);
+                render();
+                if (state.onChange) state.onChange(state.items);
+              },
+            });
+          });
+        }
+        var clearBtn = rowEl.querySelector("[data-clear-item]");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", function () {
+            var it = state.items.find(function (x) { return x.id === id; });
+            if (!it) return;
+            it.materialId = null;
+            render();
+            if (state.onChange) state.onChange(state.items);
+          });
+        }
         var removeBtn = rowEl.querySelector("[data-remove]");
         if (removeBtn) {
           removeBtn.addEventListener("click", function () {
@@ -2798,6 +3338,33 @@ table.table a:hover { text-decoration: underline; }
           });
         }
       });
+      var chooseCatalogBtn = container.querySelector("#chooseCatalogBtn");
+      if (chooseCatalogBtn) {
+        chooseCatalogBtn.addEventListener("click", function () {
+          openCatalogPickerModal({
+            title: "Add items from catalog",
+            searchPlaceholder: "Search materials…",
+            emptyText: "No active materials yet — add one on the Products page first.",
+            entries: catalogEntries(),
+            showQty: true,
+            qtyLabel: "Qty",
+            qtyDefault: 1,
+            closeAfterPick: false,
+            onPick: function (mid, qty) {
+              var newItem = { id: MFG.uid(), materialId: null, description: "", quantity: qty, unitCost: 0 };
+              applyMaterialPick(newItem, mid);
+              newItem.quantity = qty;
+              if (state.items.length === 1 && !state.items[0].materialId && !state.items[0].description && !state.items[0].unitCost) {
+                state.items[0] = newItem;
+              } else {
+                state.items.push(newItem);
+              }
+              render();
+              if (state.onChange) state.onChange(state.items);
+            },
+          });
+        });
+      }
       var addBtn = container.querySelector("#addLineBtn");
       if (addBtn) {
         addBtn.addEventListener("click", function () {
@@ -2866,6 +3433,7 @@ table.table a:hover { text-decoration: underline; }
     "h1{font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;margin:0 0 3px;letter-spacing:-.01em;}" +
     "h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#555;margin:26px 0 8px;}" +
     ".muted{color:#666;font-size:12px;margin:1px 0;}" +
+    ".muted.addr{white-space:pre-line;}" +
     ".letterhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}" +
     ".company-block .logo{max-height:44px;max-width:220px;margin-bottom:10px;display:block;}" +
     ".doc-block{text-align:right;min-width:180px;}" +
@@ -2898,7 +3466,7 @@ table.table a:hover { text-decoration: underline; }
         '<div class="company-block">' +
           (settings.logoDataUrl ? '<img class="logo" src="' + settings.logoDataUrl + '" />' : "") +
           "<h1>" + escapeHtml(settings.businessName || "Your Business") + "</h1>" +
-          (settings.address ? '<p class="muted">' + escapeHtml(settings.address) + "</p>" : "") +
+          (settings.address ? '<p class="muted addr">' + escapeHtml(settings.address) + "</p>" : "") +
           [settings.email, settings.phone, settings.website].filter(Boolean).map(function (v) { return '<p class="muted">' + escapeHtml(v) + "</p>"; }).join("") +
         "</div>" +
         '<div class="doc-block">' +
@@ -3040,12 +3608,15 @@ table.table a:hover { text-decoration: underline; }
     emptyState: emptyState,
     statusBadge: statusBadge,
     productionStatusBadge: productionStatusBadge,
+    openCatalogPickerModal: openCatalogPickerModal,
     createLineItemsEditor: createLineItemsEditor,
     createBomEditor: createBomEditor,
     createPriceOverridesEditor: createPriceOverridesEditor,
     createVendorPricesEditor: createVendorPricesEditor,
     createPoLineItemsEditor: createPoLineItemsEditor,
     purchaseOrderStatusBadge: purchaseOrderStatusBadge,
+    paymentStatusBadge: paymentStatusBadge,
+    openVendorPaymentModal: openVendorPaymentModal,
     kanbanBoardHtml: kanbanBoardHtml,
     colorVarStyle: colorVarStyle,
     colorVarDecls: colorVarDecls,
@@ -3128,12 +3699,14 @@ table.table a:hover { text-decoration: underline; }
       body =
         '<div class="table-wrap"><table class="table"><thead><tr>' +
           "<th>PO #</th><th>Vendor</th><th>Issued</th><th>Expected</th><th>Status</th>" +
-          '<th class="num">Total</th><th class="num">Received</th><th class="num">Actions</th>' +
+          '<th class="num">Total</th><th class="num">Received</th><th class="num">Balance Due</th><th class="num">Actions</th>' +
         "</tr></thead><tbody>" +
         filtered.map(function (po) {
           var total = MFG.computePoTotal(po);
           var progress = MFG.poReceivingProgress(po);
           var anyReceived = progress.totalReceived > 0;
+          var balance = MFG.poBalanceDue(po);
+          var payStatus = MFG.poPaymentStatus(po);
           var actions = '<button class="btn-icon neutral" data-print="' + po.id + '" title="Print / PDF" aria-label="Print or save as PDF">' + MFGUI.ICONS.print + "</button>";
           if (!anyReceived) {
             actions += '<button class="btn-icon" data-delete="' + po.id + '" title="Delete" aria-label="Delete purchase order">' + MFGUI.ICONS.trash + "</button>";
@@ -3147,6 +3720,7 @@ table.table a:hover { text-decoration: underline; }
               "<td>" + MFGUI.purchaseOrderStatusBadge(po.status) + "</td>" +
               '<td class="num">' + MFG.formatCurrency(total, po.currency) + "</td>" +
               '<td class="num">' + (progress.totalOrdered > 0 ? MFG.formatQty(progress.totalReceived) + " / " + MFG.formatQty(progress.totalOrdered) : "—") + "</td>" +
+              '<td class="num">' + (payStatus === "n/a" ? "—" : MFG.formatCurrency(balance, po.currency) + " " + MFGUI.paymentStatusBadge(payStatus)) + "</td>" +
               '<td class="num"><div class="table-actions">' + actions + "</div></td>" +
             "</tr>"
           );

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Payments · Manufacturing &amp; Invoicing Manager</title>
-<meta name="description" content="A record of every payment collected against your invoices." />
+<title>Accounts Payable · Manufacturing &amp; Invoicing Manager</title>
+<meta name="description" content="What you owe vendors, and payments recorded against purchase orders." />
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwMDAwMDAiLz4KICA8dGV4dCB4PSIzMiIgeT0iNDMiIGZvbnQtZmFtaWx5PSItYXBwbGUtc3lzdGVtLFNlZ29lIFVJLEFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlM8L3RleHQ+Cjwvc3ZnPgo=" type="image/svg+xml" />
 <style>
 /* =========================================================
@@ -967,7 +967,7 @@ table.table a:hover { text-decoration: underline; }
 
 </style>
 </head>
-<body data-page="payments">
+<body data-page="accounts-payable">
 <div id="app-shell"></div>
 <div class="toast-root" id="toast-root"></div>
 <div id="modal-root"></div>
@@ -3635,58 +3635,160 @@ table.table a:hover { text-decoration: underline; }
 
 </script>
 <script>
-/* Payments page */
+/* Accounts Payable page — every purchase order that represents a real
+   obligation to a vendor (sent, partially received, or fully received —
+   never a draft, which hasn't committed to anything yet), with what's
+   been paid, what's still owed, and a Record Payment action. The
+   purchasing mirror of Payments.html, which does the same job for money
+   owed TO the business by customers. */
 (function () {
   "use strict";
 
-  var shell = MFGUI.renderShell("payments");
+  var shell = MFGUI.renderShell("accounts-payable");
+
+  var FILTERS = [
+    { label: "Outstanding", value: "outstanding" },
+    { label: "Unpaid", value: "unpaid" },
+    { label: "Partial", value: "partial" },
+    { label: "Paid", value: "paid" },
+    { label: "All", value: "all" },
+  ];
+
+  var query = "";
+  var filter = "outstanding";
+
+  function vendorName(id, data) {
+    var v = data.vendors.find(function (x) { return x.id === id; });
+    return v ? v.name : "Unknown vendor";
+  }
+
+  function metricCard(icon, label, value, colorVar) {
+    return (
+      '<div class="card"><div class="card-body" style="display:flex;align-items:center;gap:14px;">' +
+        '<div class="icon-wrap" style="width:40px;height:40px;' + MFGUI.colorVarDecls(colorVar) + '">' + icon + "</div>" +
+        '<div><p class="text-secondary" style="font-size:12px;">' + label + "</p>" +
+        '<p style="font-size:24px;font-weight:700;">' + value + "</p></div>" +
+      "</div></div>"
+    );
+  }
 
   function render() {
     var data = MFG.getData();
-    var totalCollected = data.payments.reduce(function (sum, p) { return sum + p.amount; }, 0);
-    shell.setTitle("Payments", data.payments.length + " payments recorded · " + MFG.formatCurrency(totalCollected, data.settings.currency) + " total");
+    // A draft PO isn't a real obligation yet — nothing has been committed
+    // to. Everything past draft (sent/partial/received), including
+    // cancelled orders that still carry payment history, is fair game so
+    // a forfeited deposit on a cancelled order never just disappears.
+    var payable = data.purchaseOrders.filter(function (po) { return po.status !== "draft"; });
 
-    var rows = data.payments.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (p) {
-      var invoice = data.invoices.find(function (i) { return i.id === p.invoiceId; });
-      var customer = invoice ? data.customers.find(function (c) { return c.id === invoice.customerId; }) : undefined;
-      return { payment: p, invoice: invoice, customer: customer };
-    });
+    var today = MFG.todayISO();
+    var monthPrefix = today.slice(0, 7);
+    var totalOutstanding = MFG.totalPayable();
+    var overdueTotal = MFG.round2(
+      payable
+        .filter(function (po) { return po.paymentDueDate && po.paymentDueDate < today && MFG.poBalanceDue(po) > 0; })
+        .reduce(function (sum, po) { return sum + MFG.poBalanceDue(po); }, 0)
+    );
+    var paidThisMonth = MFG.round2(
+      (data.vendorPayments || [])
+        .filter(function (p) { return (p.date || "").slice(0, 7) === monthPrefix; })
+        .reduce(function (sum, p) { return sum + p.amount; }, 0)
+    );
+
+    shell.setTitle("Accounts Payable", payable.length + " purchase order" + (payable.length === 1 ? "" : "s") + " with a vendor balance to track");
+
+    var metricsRow =
+      '<div class="stat-grid">' +
+        metricCard(MFGUI.ICONS.dollarSign, "Total Outstanding Payable", MFG.formatCurrency(totalOutstanding, data.settings.currency), "--sec-accounts-payable") +
+        metricCard(MFGUI.ICONS.alertTriangle, "Overdue", MFG.formatCurrency(overdueTotal, data.settings.currency), overdueTotal > 0 ? "--danger" : "--sec-accounts-payable") +
+        metricCard(MFGUI.ICONS.trending, "Paid to Vendors This Month", MFG.formatCurrency(paidThisMonth, data.settings.currency), "--sec-payments") +
+      "</div>";
+
+    var q = query.trim().toLowerCase();
+    var filtered = payable
+      .filter(function (po) {
+        if (filter === "all") return true;
+        var status = MFG.poPaymentStatus(po);
+        if (filter === "outstanding") return status === "unpaid" || status === "partial";
+        return status === filter;
+      })
+      .filter(function (po) {
+        if (!q) return true;
+        return po.number.toLowerCase().indexOf(q) !== -1 || vendorName(po.vendorId, data).toLowerCase().indexOf(q) !== -1;
+      })
+      .sort(function (a, b) { return a.updatedAt < b.updatedAt ? 1 : -1; });
+
+    var filterChips = FILTERS.map(function (f) {
+      return '<button class="chip' + (filter === f.value ? " active" : "") + '" data-filter="' + f.value + '">' + f.label + "</button>";
+    }).join("");
+
+    var toolbar =
+      '<div class="flex-col" style="gap:12px;margin:20px 0 16px;">' +
+        '<div class="field" style="max-width:320px;position:relative;">' +
+          '<input class="input" id="searchInput" placeholder="Search by vendor or PO #…" value="' + MFGUI.escapeHtml(query) + '" style="padding-left:34px;"/>' +
+          '<span style="position:absolute;left:10px;top:9px;width:16px;height:16px;color:var(--text-tertiary);">' + MFGUI.ICONS.search + "</span>" +
+        "</div>" +
+        '<div class="chip-row">' + filterChips + "</div>" +
+      "</div>";
 
     var body;
-    if (rows.length === 0) {
-      body = MFGUI.emptyState("payments", "No payments recorded yet", "Record a payment from an invoice's page once a customer pays you.");
+    if (filtered.length === 0) {
+      body = MFGUI.emptyState(
+        "wallet",
+        payable.length === 0 ? "Nothing owed to vendors yet" : "No matching purchase orders",
+        payable.length === 0 ? "Send a purchase order to a vendor and it'll show up here once there's a balance to track." : "Try a different search or filter.",
+        ""
+      );
     } else {
       body =
         '<div class="table-wrap"><table class="table"><thead><tr>' +
-          "<th>Date</th><th>Customer</th><th>Invoice</th><th>Method</th>" +
-          '<th class="num">Amount</th><th class="num">Actions</th>' +
+          "<th>PO #</th><th>Vendor</th><th>Payment Due</th><th>Status</th>" +
+          '<th class="num">Total</th><th class="num">Paid</th><th class="num">Balance</th><th class="num">Actions</th>' +
         "</tr></thead><tbody>" +
-        rows.map(function (r) {
+        filtered.map(function (po) {
+          var total = MFG.computePoTotal(po);
+          var paid = MFG.poAmountPaid(po.id);
+          var balance = MFG.poBalanceDue(po);
+          var payStatus = MFG.poPaymentStatus(po);
+          var isOverdue = po.paymentDueDate && po.paymentDueDate < today && balance > 0;
+          var payEligible = (po.status === "sent" || po.status === "partial" || po.status === "received") && balance > 0;
           return (
             "<tr>" +
-              "<td>" + MFG.formatDate(r.payment.date) + "</td>" +
-              "<td>" + MFGUI.escapeHtml(r.customer ? r.customer.name : "—") + "</td>" +
-              "<td>" + (r.invoice ? '<a href="editor.html?id=' + r.invoice.id + '">' + MFGUI.escapeHtml(r.invoice.number) + "</a>" : '<span class="text-tertiary">Deleted invoice</span>') + "</td>" +
-              '<td><span class="pill pill-neutral">' + MFGUI.escapeHtml(r.payment.method) + "</span></td>" +
-              '<td class="num" style="font-weight:600;">' + MFG.formatCurrency(r.payment.amount, r.invoice ? r.invoice.currency : data.settings.currency) + "</td>" +
-              '<td class="num"><div class="table-actions"><button class="btn-icon" data-delete="' + r.payment.id + '" aria-label="Delete payment">' + MFGUI.ICONS.trash + "</button></div></td>" +
+              '<td><a href="po-editor.html?id=' + po.id + '">' + MFGUI.escapeHtml(po.number) + "</a></td>" +
+              "<td>" + MFGUI.escapeHtml(vendorName(po.vendorId, data)) + "</td>" +
+              '<td' + (isOverdue ? ' style="color:var(--danger);font-weight:600;"' : "") + ">" + (po.paymentDueDate ? MFG.formatDate(po.paymentDueDate) + (isOverdue ? " (overdue)" : "") : "—") + "</td>" +
+              "<td>" + MFGUI.paymentStatusBadge(payStatus) + "</td>" +
+              '<td class="num">' + MFG.formatCurrency(total, po.currency) + "</td>" +
+              '<td class="num">' + MFG.formatCurrency(paid, po.currency) + "</td>" +
+              '<td class="num" style="font-weight:600;">' + MFG.formatCurrency(balance, po.currency) + "</td>" +
+              '<td class="num"><div class="table-actions">' +
+                (payEligible ? '<button class="btn btn-secondary btn-sm" data-pay="' + po.id + '">' + MFGUI.ICONS.wallet + " Record Payment</button>" : "") +
+              "</div></td>" +
             "</tr>"
           );
         }).join("") +
         "</tbody></table></div>";
     }
 
-    shell.contentEl.innerHTML = body;
+    shell.contentEl.innerHTML = metricsRow + toolbar + body;
 
-    shell.contentEl.querySelectorAll("[data-delete]").forEach(function (btn) {
+    var searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        query = searchInput.value;
+        var pos = searchInput.selectionStart;
+        render();
+        var again = document.getElementById("searchInput");
+        if (again) { again.focus(); again.setSelectionRange(pos, pos); }
+      });
+    }
+    shell.contentEl.querySelectorAll("[data-filter]").forEach(function (btn) {
+      btn.addEventListener("click", function () { filter = btn.getAttribute("data-filter"); render(); });
+    });
+    shell.contentEl.querySelectorAll("[data-pay]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var id = btn.getAttribute("data-delete");
-        MFGUI.confirmDialog({
-          title: "Delete payment record?",
-          description: "This will increase the invoice's outstanding balance again.",
-          confirmLabel: "Delete",
-          onConfirm: function () { MFG.deletePayment(id); MFGUI.toast("Payment removed.", "info"); render(); },
-        });
+        var po = MFG.getData().purchaseOrders.find(function (x) { return x.id === btn.getAttribute("data-pay"); });
+        if (!po) return;
+        MFGUI.openVendorPaymentModal(po, function () { render(); });
       });
     });
   }
