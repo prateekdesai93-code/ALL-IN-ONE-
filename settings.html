@@ -112,56 +112,6 @@ html[data-theme="light"] {
   --accent-glow: rgba(79, 70, 229, 0.25);
 }
 
-/* Blue theme — a third choice alongside pure-black Dark and white Light:
-   a near-black midnight base with a blue undertone instead of true black,
-   with a brighter blue brand accent to match. Darker than the first pass —
-   the background reads as "black with a hint of blue" rather than a
-   lighter navy panel. Same section-color system as the other two themes
-   (the palette already reads clearly against a dark background), so
-   switching themes never changes which color means which part of the app.
-   Toggle in Settings → Theme sets data-theme="blue" on <html>. */
-html[data-theme="blue"] {
-  --bg: #03060c;
-  --surface: #050a14;
-  --surface-2: #0a1220;
-  --surface-hover: #101a2c;
-  --border: #182740;
-  --border-strong: #223757;
-  --text: #e6edf7;
-  --text-secondary: #8ba0bf;
-  --text-tertiary: #55677f;
-
-  --accent: #3b82f6;
-  --accent-soft: rgba(59, 130, 246, 0.2);
-  --accent-text: #93c5fd;
-  --accent-contrast: #ffffff;
-
-  --success: #4ade80;
-  --success-soft: rgba(74, 222, 128, 0.16);
-  --warning: #fbbf24;
-  --warning-soft: rgba(251, 191, 36, 0.16);
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.16);
-
-  --sec-dashboard: #60a5fa; --sec-dashboard-soft: rgba(96, 165, 250, 0.2);
-  --sec-products: #a78bfa; --sec-products-soft: rgba(167, 139, 250, 0.2);
-  --sec-bom: #a3e635; --sec-bom-soft: rgba(163, 230, 53, 0.2);
-  --sec-vendors: #fb923c; --sec-vendors-soft: rgba(251, 146, 60, 0.2);
-  --sec-purchase-orders: #2dd4bf; --sec-purchase-orders-soft: rgba(45, 212, 191, 0.2);
-  --sec-accounts-payable: #fb7185; --sec-accounts-payable-soft: rgba(251, 113, 133, 0.2);
-  --sec-production: #e879f9; --sec-production-soft: rgba(232, 121, 249, 0.2);
-  --sec-customers: #22d3ee; --sec-customers-soft: rgba(34, 211, 238, 0.2);
-  --sec-invoices: #818cf8; --sec-invoices-soft: rgba(129, 140, 248, 0.2);
-  --sec-credit-notes: #f472b6; --sec-credit-notes-soft: rgba(244, 114, 182, 0.2);
-  --sec-payments: #34d399; --sec-payments-soft: rgba(52, 211, 153, 0.2);
-  --sec-reports: #fbbf24; --sec-reports-soft: rgba(251, 191, 36, 0.2);
-  --sec-settings: #94a3b8; --sec-settings-soft: rgba(148, 163, 184, 0.2);
-
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-2: 0 16px 40px -14px rgba(0, 0, 0, 0.7);
-  --accent-glow: rgba(59, 130, 246, 0.4);
-}
-
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -1224,6 +1174,10 @@ table.table a:hover { text-decoration: underline; }
       settings: Object.assign({}, DEFAULT_SETTINGS, parsed.settings || {}, {
         taxLabel: (parsed.settings && parsed.settings.taxLabel) || DEFAULT_SETTINGS.taxLabel,
         taxPresets: undefined,
+        // The Blue theme was removed (dark and light only, going forward) —
+        // anyone who had it picked falls back to Dark rather than being
+        // silently left on a data-theme value with no matching CSS.
+        theme: (parsed.settings && parsed.settings.theme === "blue") ? "dark" : (parsed.settings && parsed.settings.theme) || DEFAULT_SETTINGS.theme,
       }),
       items: parsed.items || [],
       productionOrders: parsed.productionOrders || [],
@@ -2156,17 +2110,50 @@ table.table a:hover { text-decoration: underline; }
   // falling back to memory-only, see safeSetItem above). Settings surfaces
   // this so "the app feels slow/frozen" and "my change didn't save" have
   // somewhere concrete to point to instead of being a mystery.
+  // Categories shown in the Backup & Data storage breakdown, in the order
+  // they should render. Attachments (logo + PO file uploads) are measured
+  // separately since they're base64 strings buried inside other records,
+  // not their own top-level array — lumping them into "Purchase orders"
+  // would hide the one thing most likely to actually use real space.
+  var STORAGE_CATEGORIES = [
+    { key: "invoices", label: "Invoices" },
+    { key: "creditNotes", label: "Credit notes" },
+    { key: "payments", label: "Payments" },
+    { key: "customers", label: "Customers" },
+    { key: "items", label: "Products & materials" },
+    { key: "purchaseOrders", label: "Purchase orders" },
+    { key: "vendorPayments", label: "Vendor payments" },
+    { key: "vendors", label: "Vendors" },
+    { key: "productionOrders", label: "Production orders" },
+    { key: "movements", label: "Stock movements" },
+  ];
   function storageInfo() {
     var json = JSON.stringify(data);
     var bytes = json.length;
+    var logoBytes = (data.settings && data.settings.logoDataUrl) ? data.settings.logoDataUrl.length : 0;
     var attachmentBytes = (data.purchaseOrders || []).reduce(function (sum, po) {
       return sum + (po.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
     }, 0);
     var attachmentCount = (data.purchaseOrders || []).reduce(function (sum, po) { return sum + (po.attachments || []).length; }, 0);
+    // Per-category size is measured by stringifying just that array — not
+    // exact (JSON overhead/whitespace is counted once, not per-array), but
+    // more than close enough to answer "what's actually taking the space",
+    // which is all this is for.
+    var breakdown = STORAGE_CATEGORIES.map(function (cat) {
+      var arr = data[cat.key] || [];
+      var catBytes = arr.length ? JSON.stringify(arr).length : 0;
+      if (cat.key === "purchaseOrders") catBytes -= attachmentBytes; // counted separately below
+      return { key: cat.key, label: cat.label, bytes: Math.max(0, catBytes), count: arr.length };
+    });
+    if (attachmentBytes > 0) breakdown.push({ key: "attachments", label: "PO attachments", bytes: attachmentBytes, count: attachmentCount });
+    if (logoBytes > 0) breakdown.push({ key: "logo", label: "Business logo", bytes: logoBytes, count: 1 });
+    breakdown.sort(function (a, b) { return b.bytes - a.bytes; });
     return {
       bytes: bytes,
       attachmentBytes: attachmentBytes,
       attachmentCount: attachmentCount,
+      logoBytes: logoBytes,
+      breakdown: breakdown,
       degraded: storageDegraded,
       // Conservative — real quotas vary by browser, but most are at least
       // this much, so treat crossing it as a real warning, not a guess.
@@ -2314,7 +2301,7 @@ table.table a:hover { text-decoration: underline; }
 (function (global) {
   "use strict";
 
-  var BUILD_DATE = "2026-08-27 09:06";
+  var BUILD_DATE = "2026-08-27 12:40";
 
   var ICONS = {
     dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
@@ -4589,6 +4576,40 @@ table.table a:hover { text-decoration: underline; }
     return '<p class="text-' + tone + '" style="font-size:11.5px;margin-bottom:12px;">' + MFGUI.escapeHtml(msg) + "</p>";
   }
 
+  // "What's actually taking up the space" — a per-category bar chart so a
+  // slow-feeling browser can be diagnosed instead of guessed at. Categories
+  // under 1% of the total are still listed (never hidden), just without a
+  // visible bar, so the numbers always add up to what's reported above.
+  function storageBreakdownHtml() {
+    if (!MFG.testStorageWritable()) return "";
+    var info = MFG.storageInfo();
+    var rows = (info.breakdown || []).filter(function (r) { return r.bytes > 0 || r.count > 0; });
+    if (!rows.length) return "";
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.bytes); }, 1);
+    return (
+      '<div class="card section-card">' +
+        '<h2 style="margin-bottom:4px;">What\'s using storage</h2>' +
+        '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">A breakdown of the ' + formatBytes(info.bytes) + ' saved in this browser, largest first. If one line is unexpectedly huge, that\'s where to look first.</p>' +
+        '<div class="flex-col" style="gap:9px;">' +
+        rows.map(function (r) {
+          var pct = Math.max(2, Math.round((r.bytes / max) * 100));
+          return (
+            '<div>' +
+              '<div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;">' +
+                '<span>' + MFGUI.escapeHtml(r.label) + (r.count ? ' <span class="text-tertiary">(' + r.count + ")</span>" : "") + "</span>" +
+                '<span class="text-tertiary">' + formatBytes(r.bytes) + "</span>" +
+              "</div>" +
+              '<div style="height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;">' +
+                '<div style="height:100%;width:' + pct + '%;border-radius:3px;background:var(--accent);"></div>' +
+              "</div>" +
+            "</div>"
+          );
+        }).join("") +
+        "</div>" +
+      "</div>"
+    );
+  }
+
   // Settings used to be one long scroll of every card stacked on top of
   // each other. It's now organized the same way the rest of the app
   // organizes itself — a row of tabs, one focused screen at a time —
@@ -4640,8 +4661,8 @@ table.table a:hover { text-decoration: underline; }
         '<h2 style="margin-bottom:4px;">Tax / VAT Registration</h2>' +
         '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Your own business\'s registration number — VAT No., GSTIN, EIN, Company Reg. No., ABN, whatever your jurisdiction calls it. Printed on every invoice, credit note, and purchase order once set here; leave the number blank to leave it off documents entirely.</p>' +
         '<div class="form-grid">' +
-          '<div class="field"><label>Label</label><input class="input" id="sTaxIdLabel" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxIdLabel || "Tax / VAT ID") + '" placeholder="Tax / VAT ID, GSTIN, EIN…"/></div>' +
-          '<div class="field"><label>Number</label><input class="input" id="sTaxId" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxId || "") + '" placeholder="Optional"/></div>' +
+          '<div class="field"><label>Label</label><input class="input" id="sTaxIdLabel" name="tax-id-label-custom" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxIdLabel || "Tax / VAT ID") + '" placeholder="Tax / VAT ID, GSTIN, EIN…"/></div>' +
+          '<div class="field"><label>Number</label><input class="input" id="sTaxId" name="tax-reg-number-custom" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxId || "") + '" placeholder="Optional"/></div>' +
         "</div>" +
       "</div>"
     );
@@ -4707,10 +4728,9 @@ table.table a:hover { text-decoration: underline; }
     return (
       '<div class="card section-card">' +
         '<h2 style="margin-bottom:4px;">Theme</h2>' +
-        '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Pick whichever reads better for you. The colored section icons and accents adapt across all three.</p>' +
+        '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Pick whichever reads better for you. The colored section icons and accents adapt across both.</p>' +
         '<div class="chip-row">' +
           '<button class="chip' + ((s.theme || "dark") === "dark" ? " active" : "") + '" data-theme="dark">Dark (black background)</button>' +
-          '<button class="chip' + (s.theme === "blue" ? " active" : "") + '" data-theme="blue">Blue (navy background)</button>' +
           '<button class="chip' + (s.theme === "light" ? " active" : "") + '" data-theme="light">Light (white background)</button>' +
         "</div>" +
       "</div>"
@@ -4731,6 +4751,8 @@ table.table a:hover { text-decoration: underline; }
         "</div>" +
         '<p class="text-tertiary" style="font-size:11px;margin-top:10px;">The Excel export is a nicely formatted workbook — a cover sheet with your business details, plus separate sheets for items, bills of materials, production orders, vendors, purchase orders, purchase order line items, customers, invoices, invoice line items, credit notes, payments, and stock movements. It\'s generated entirely on this device, so it works with no internet connection. The .json backup above is for restoring your data into this app.</p>' +
       "</div>" +
+
+      storageBreakdownHtml() +
 
       '<div class="card section-card" style="border-color:rgba(239,68,68,.25);">' +
         '<h2 style="margin-bottom:4px;color:var(--danger);">Danger Zone</h2>' +
@@ -4841,7 +4863,18 @@ table.table a:hover { text-decoration: underline; }
     liveSave(document.getElementById("sCustomSymbol"), function (v) { return { customSymbol: v.trim() }; });
     liveSave(document.getElementById("sThreshold"), function (v) { return { defaultReorderThreshold: Number(v) || 0 }; });
 
-    document.querySelectorAll("[data-theme]").forEach(function (btn) {
+    // Scoped to ".chip[data-theme]", NOT the bare "[data-theme]" attribute —
+    // <html> itself carries a data-theme attribute (that's how the actual
+    // theme is applied, see applyAccent()), so an unscoped selector here
+    // used to match the document root too and silently attach a click
+    // listener to the *entire page*. Every single click anywhere on
+    // Settings was bubbling up to <html> and re-rendering this whole tab
+    // panel out from under whatever field the visitor had just focused —
+    // which is exactly what made typing into a field feel broken unless
+    // focus was re-established a keystroke-safe way (e.g. Tab/arrow keys,
+    // which don't fire a "click"). Scoping to the chip buttons themselves
+    // fixes both the phantom re-renders and the focus loss they caused.
+    document.querySelectorAll(".chip[data-theme]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         save({ theme: btn.getAttribute("data-theme") });
         MFGUI.applyAccent();
