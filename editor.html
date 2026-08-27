@@ -1182,7 +1182,12 @@ table.table a:hover { text-decoration: underline; }
       items: parsed.items || [],
       productionOrders: parsed.productionOrders || [],
       customers: parsed.customers || [],
-      invoices: parsed.invoices || [],
+      // Same "every record gets a normalized attachments array, even one
+      // saved before this feature existed" discipline as purchase orders
+      // below — keeps every call site free of `|| []` guards of its own.
+      invoices: (parsed.invoices || []).map(function (inv) {
+        return Object.assign({ attachments: [] }, inv, { attachments: inv.attachments || [] });
+      }),
       payments: parsed.payments || [],
       creditNotes: parsed.creditNotes || [],
       movements: parsed.movements || [],
@@ -1829,6 +1834,13 @@ table.table a:hover { text-decoration: underline; }
   }
   function deleteVendorPayment(id) {
     data.vendorPayments = data.vendorPayments.filter(function (x) { return x.id !== id; });
+    // Same cleanup as deletePayment on the customer side — a proof-of-
+    // payment attachment tied to this specific payment shouldn't outlive
+    // the payment record it was evidence for.
+    data.purchaseOrders.forEach(function (po) {
+      if (!po.attachments || !po.attachments.length) return;
+      po.attachments = po.attachments.filter(function (a) { return a.paymentId !== id; });
+    });
     persist();
   }
   function poAmountPaid(poId) {
@@ -1885,7 +1897,7 @@ table.table a:hover { text-decoration: underline; }
     var s = data.settings;
     var number = input.number || (s.invoicePrefix + "-" + s.nextInvoiceSeq);
     var bumpSeq = !input.number;
-    var rec = Object.assign({}, input, {
+    var rec = Object.assign({ attachments: [] }, input, {
       number: number,
       id: uid(),
       stockApplied: false,
@@ -1956,6 +1968,33 @@ table.table a:hover { text-decoration: underline; }
     });
     persist();
   }
+  // Attachments on an invoice (a signed copy, proof of payment received,
+  // anything worth keeping with the record) — same shape and same caps as
+  // addPoAttachment/removePoAttachment above, so the accounts-receivable
+  // side keeps a record exactly as easily as accounts-payable does.
+  function addInvoiceAttachment(invoiceId, attachment) {
+    var inv = data.invoices.find(function (x) { return x.id === invoiceId; });
+    if (!inv) return { ok: false, error: "Invoice not found." };
+    inv.attachments = inv.attachments || [];
+    if (inv.attachments.length >= ATTACHMENT_MAX_COUNT) {
+      return { ok: false, error: "Each invoice can hold up to " + ATTACHMENT_MAX_COUNT + " attachments — remove one first." };
+    }
+    if ((attachment.size || 0) > ATTACHMENT_MAX_BYTES) {
+      return { ok: false, error: "That file is too large — attachments are capped at " + Math.round(ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB each (this app stores everything in the browser, with no server behind it)." };
+    }
+    var rec = Object.assign({}, attachment, { id: uid(), uploadedAt: nowISO() });
+    inv.attachments.push(rec);
+    inv.updatedAt = nowISO();
+    persist();
+    return { ok: true, attachment: rec };
+  }
+  function removeInvoiceAttachment(invoiceId, attachmentId) {
+    var inv = data.invoices.find(function (x) { return x.id === invoiceId; });
+    if (!inv) return;
+    inv.attachments = (inv.attachments || []).filter(function (a) { return a.id !== attachmentId; });
+    inv.updatedAt = nowISO();
+    persist();
+  }
 
   // ---------- payments ----------
   function recordPayment(input) {
@@ -1966,6 +2005,14 @@ table.table a:hover { text-decoration: underline; }
   }
   function deletePayment(id) {
     data.payments = data.payments.filter(function (x) { return x.id !== id; });
+    // A receipt attached at the moment this payment was recorded belongs
+    // to the payment, not the invoice in general — if the payment record
+    // goes, its attachment shouldn't linger behind as an orphan with
+    // nothing to explain what it was proof of.
+    data.invoices.forEach(function (inv) {
+      if (!inv.attachments || !inv.attachments.length) return;
+      inv.attachments = inv.attachments.filter(function (a) { return a.paymentId !== id; });
+    });
     persist();
   }
 
@@ -2135,6 +2182,10 @@ table.table a:hover { text-decoration: underline; }
       return sum + (po.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
     }, 0);
     var attachmentCount = (data.purchaseOrders || []).reduce(function (sum, po) { return sum + (po.attachments || []).length; }, 0);
+    var invoiceAttachmentBytes = (data.invoices || []).reduce(function (sum, inv) {
+      return sum + (inv.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
+    }, 0);
+    var invoiceAttachmentCount = (data.invoices || []).reduce(function (sum, inv) { return sum + (inv.attachments || []).length; }, 0);
     // Per-category size is measured by stringifying just that array — not
     // exact (JSON overhead/whitespace is counted once, not per-array), but
     // more than close enough to answer "what's actually taking the space",
@@ -2143,15 +2194,19 @@ table.table a:hover { text-decoration: underline; }
       var arr = data[cat.key] || [];
       var catBytes = arr.length ? JSON.stringify(arr).length : 0;
       if (cat.key === "purchaseOrders") catBytes -= attachmentBytes; // counted separately below
+      if (cat.key === "invoices") catBytes -= invoiceAttachmentBytes; // counted separately below
       return { key: cat.key, label: cat.label, bytes: Math.max(0, catBytes), count: arr.length };
     });
     if (attachmentBytes > 0) breakdown.push({ key: "attachments", label: "PO attachments", bytes: attachmentBytes, count: attachmentCount });
+    if (invoiceAttachmentBytes > 0) breakdown.push({ key: "invoiceAttachments", label: "Invoice attachments", bytes: invoiceAttachmentBytes, count: invoiceAttachmentCount });
     if (logoBytes > 0) breakdown.push({ key: "logo", label: "Business logo", bytes: logoBytes, count: 1 });
     breakdown.sort(function (a, b) { return b.bytes - a.bytes; });
     return {
       bytes: bytes,
       attachmentBytes: attachmentBytes,
       attachmentCount: attachmentCount,
+      invoiceAttachmentBytes: invoiceAttachmentBytes,
+      invoiceAttachmentCount: invoiceAttachmentCount,
       logoBytes: logoBytes,
       breakdown: breakdown,
       degraded: storageDegraded,
@@ -2263,6 +2318,8 @@ table.table a:hover { text-decoration: underline; }
 
     recordPayment: recordPayment,
     deletePayment: deletePayment,
+    addInvoiceAttachment: addInvoiceAttachment,
+    removeInvoiceAttachment: removeInvoiceAttachment,
 
     CREDIT_NOTE_REASONS: CREDIT_NOTE_REASONS,
     findCreditNote: findCreditNote,
@@ -2301,7 +2358,7 @@ table.table a:hover { text-decoration: underline; }
 (function (global) {
   "use strict";
 
-  var BUILD_DATE = "2026-08-27 12:40";
+  var BUILD_DATE = "2026-08-27 14:01";
 
   var ICONS = {
     dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
@@ -2649,7 +2706,10 @@ table.table a:hover { text-decoration: underline; }
           ["Bank Transfer", "Credit Card", "Cash", "Check", "PayPal", "Other"].map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("") +
         "</select></div>" +
       "</div>" +
-      '<div class="field"><label>Note</label><textarea class="input" id="vpNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>';
+      '<div class="field"><label>Note</label><textarea class="input" id="vpNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>' +
+      '<div class="field"><label>Attach receipt <span class="text-tertiary" style="font-weight:400;">(optional)</span></label>' +
+        '<input type="file" class="input" id="vpReceipt" accept="image/*,application/pdf"/>' +
+        '<span class="hint">A bank transfer confirmation, receipt photo, or anything else worth keeping as proof — up to ' + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + 'MB.</span></div>';
 
     openModal({
       title: "Record Payment — " + po.number,
@@ -2664,16 +2724,42 @@ table.table a:hover { text-decoration: underline; }
             root.querySelector("#vpAmountErr").classList.remove("hidden");
             return;
           }
-          MFG.recordVendorPayment({
-            purchaseOrderId: po.id,
-            amount: amount,
-            date: root.querySelector("#vpDate").value || MFG.todayISO(),
-            method: root.querySelector("#vpMethod").value,
-            note: root.querySelector("#vpNote").value.trim() || undefined,
-          });
-          toast("Payment recorded.");
-          close();
-          if (onSaved) onSaved();
+          var file = root.querySelector("#vpReceipt").files[0];
+          if (file && file.size > MFG.ATTACHMENT_MAX_BYTES) {
+            toast("That receipt is too large — attachments are capped at " + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB.", "error");
+            return;
+          }
+          function finish(receiptFile) {
+            var rec = MFG.recordVendorPayment({
+              purchaseOrderId: po.id,
+              amount: amount,
+              date: root.querySelector("#vpDate").value || MFG.todayISO(),
+              method: root.querySelector("#vpMethod").value,
+              note: root.querySelector("#vpNote").value.trim() || undefined,
+            });
+            if (receiptFile) {
+              MFG.addPoAttachment(po.id, {
+                name: receiptFile.name,
+                mimeType: receiptFile.mimeType || "application/octet-stream",
+                size: receiptFile.size,
+                dataUrl: receiptFile.dataUrl,
+                kind: "proof_of_payment",
+                paymentId: rec.id,
+              });
+            }
+            toast(receiptFile ? "Payment recorded and receipt attached." : "Payment recorded.");
+            close();
+            if (onSaved) onSaved();
+          }
+          if (file) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              finish({ name: file.name, mimeType: file.type, size: file.size, dataUrl: reader.result });
+            };
+            reader.readAsDataURL(file);
+          } else {
+            finish(null);
+          }
         });
       },
     });
@@ -4009,6 +4095,40 @@ table.table a:hover { text-decoration: underline; }
     return doc;
   }
 
+  // Same idea for a purchase order — same numbers and layout language as
+  // printPurchaseOrder()'s HTML version above, so a vendor gets an
+  // identical document whether it was printed/saved or sent via WhatsApp.
+  function buildPurchaseOrderPdfDoc(po, vendor, settings) {
+    var doc = new global.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    var total = MFG.computePoTotal(po);
+    var metaLines = [
+      { label: "Issued", value: MFG.formatDate(po.issueDate) },
+      { label: "Expected", value: po.expectedDate ? MFG.formatDate(po.expectedDate) : "—" },
+    ];
+    var y = pdfLetterhead(doc, settings, "PURCHASE ORDER", po.number, metaLines);
+    var vendorLines = vendor ? [vendor.name, vendor.company, vendor.email, vendor.address, vendor.taxId ? "Tax / VAT ID: " + vendor.taxId : ""].filter(Boolean) : ["—"];
+    y = pdfBillBlock(doc, y, "Vendor", vendorLines);
+    var rows = (po.items || []).map(function (it) {
+      return {
+        description: it.description || "—",
+        quantity: it.quantity,
+        unitCost: MFG.formatCurrency(it.unitCost, po.currency),
+        amount: MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.unitCost || 0)), po.currency),
+      };
+    });
+    var tableW = pdfMetrics(doc).w - pdfMetrics(doc).margin * 2;
+    y = pdfTable(doc, y, [
+      { key: "description", label: "Description", width: tableW * 0.46, align: "left" },
+      { key: "quantity", label: "Qty", width: tableW * 0.14, align: "right" },
+      { key: "unitCost", label: "Unit Cost", width: tableW * 0.2, align: "right" },
+      { key: "amount", label: "Amount", width: tableW * 0.2, align: "right" },
+    ], rows);
+    y = pdfTotalBox(doc, y, "Total", MFG.formatCurrency(total, po.currency));
+    if (po.notes) y = pdfParagraph(doc, y, "Notes", po.notes);
+    pdfFooter(doc);
+    return doc;
+  }
+
   // Shares a freshly built PDF to WhatsApp. There are exactly two real
   // mechanisms any browser exposes for this — no plain web page can
   // attach a file to WhatsApp on someone else's behalf beyond these:
@@ -4102,6 +4222,18 @@ table.table a:hover { text-decoration: underline; }
     });
   }
 
+  function sharePurchaseOrderViaWhatsApp(po, vendor, settings) {
+    var total = MFG.computePoTotal(po);
+    shareViaWhatsApp({
+      buildDoc: function () { return buildPurchaseOrderPdfDoc(po, vendor, settings); },
+      filename: "Purchase-Order-" + po.number + ".pdf",
+      contactName: vendor && vendor.name,
+      contactPhone: vendor && vendor.phone,
+      message: "Hi" + (vendor && vendor.name ? " " + vendor.name : "") + ", please find purchase order " + po.number +
+        " for " + MFG.formatCurrency(total, po.currency) + " from " + (settings.businessName || "us") + ". Thank you!",
+    });
+  }
+
   global.MFGUI = {
     ICONS: ICONS,
     applyAccent: applyAccent,
@@ -4140,6 +4272,7 @@ table.table a:hover { text-decoration: underline; }
     debounce: debounce,
     shareInvoiceViaWhatsApp: shareInvoiceViaWhatsApp,
     shareCreditNoteViaWhatsApp: shareCreditNoteViaWhatsApp,
+    sharePurchaseOrderViaWhatsApp: sharePurchaseOrderViaWhatsApp,
   };
 })(window);
 
@@ -4285,6 +4418,89 @@ table.table a:hover { text-decoration: underline; }
     return html;
   }
 
+  // Payment history for this invoice — same shape and same "list with a
+  // per-row delete and an attached-receipt indicator" pattern as the
+  // purchase order editor's "Payments to Vendor" card, so the money
+  // coming in from a customer is tracked exactly as visibly as money
+  // going out to a vendor. Doesn't duplicate the Record Payment button
+  // already in the header actions — this card is the record, not a
+  // second way to open the same modal.
+  function paymentsHistoryCardHtml() {
+    if (!existing) return "";
+    var pays = (data.payments || [])
+      .filter(function (p) { return p.invoiceId === existing.id; })
+      .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    if (!pays.length) return "";
+    return (
+      '<div class="card section-card">' +
+        "<h2 style=\"margin-bottom:14px;\">Payments from Customer</h2>" +
+        '<div class="divider-list">' + pays.map(function (p) {
+          var receipt = (existing.attachments || []).find(function (a) { return a.paymentId === p.id; });
+          return (
+            '<div class="row">' +
+              '<div class="min-w-0"><p class="title">' + MFG.formatCurrency(p.amount, existing.currency) + "</p>" +
+              '<p class="meta">' + MFG.formatDate(p.date) + " · " + MFGUI.escapeHtml(p.method) + (p.note ? " · " + MFGUI.escapeHtml(p.note) : "") + "</p></div>" +
+              (receipt
+                ? '<a class="btn-icon neutral" href="' + receipt.dataUrl + '" target="_blank" rel="noopener" title="View attached receipt" aria-label="View attached receipt">' + MFGUI.ICONS.paperclip + "</a>"
+                : "") +
+              '<button type="button" class="btn-icon" data-remove-pay="' + p.id + '" aria-label="Delete payment record">' + MFGUI.ICONS.trash + "</button>" +
+            "</div>"
+          );
+        }).join("") + "</div>" +
+      "</div>"
+    );
+  }
+
+  // ---------- attachments (a signed copy, proof of payment, anything else worth keeping) ----------
+  function invoiceAttachmentKindLabel(kind) {
+    return kind === "signed_copy" ? "Signed Copy" : kind === "proof_of_payment" ? "Proof of Payment" : "Other";
+  }
+  function invoiceAttachmentRowHtml(a) {
+    var isImage = (a.mimeType || "").indexOf("image/") === 0;
+    return (
+      '<div class="attachment-row">' +
+        '<div class="attachment-thumb">' + (isImage ? '<img src="' + a.dataUrl + '" alt=""/>' : MFGUI.ICONS.fileText) + "</div>" +
+        '<div class="min-w-0" style="flex:1;">' +
+          '<p class="title truncate" style="font-size:13px;">' + MFGUI.escapeHtml(a.name) + "</p>" +
+          '<p class="meta">' + invoiceAttachmentKindLabel(a.kind) + " · " + formatFileSize(a.size) + " · " + MFG.formatDate((a.uploadedAt || "").slice(0, 10)) + "</p>" +
+        "</div>" +
+        '<div style="display:flex;gap:4px;flex-shrink:0;">' +
+          '<a class="btn-icon neutral" href="' + a.dataUrl + '" target="_blank" rel="noopener" aria-label="View ' + MFGUI.escapeHtml(a.name) + '">' + MFGUI.ICONS.download + "</a>" +
+          '<button type="button" class="btn-icon" data-remove-att="' + a.id + '" aria-label="Remove ' + MFGUI.escapeHtml(a.name) + '">' + MFGUI.ICONS.trash + "</button>" +
+        "</div>" +
+      "</div>"
+    );
+  }
+  function formatFileSize(bytes) {
+    if (!bytes) return "0 KB";
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+    return (bytes / 1024 / 1024).toFixed(1) + " MB";
+  }
+  function attachmentsCardHtml() {
+    if (!existing) return "";
+    var atts = existing.attachments || [];
+    return (
+      '<div class="card section-card">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:' + (atts.length ? "14px" : "8px") + ';">' +
+          "<h2 style=\"margin:0;\">Attachments</h2>" +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '<select class="input" id="attKind" style="width:auto;padding:7px 10px;font-size:12.5px;" aria-label="Attachment type">' +
+              '<option value="proof_of_payment">Proof of Payment</option>' +
+              '<option value="signed_copy">Signed Copy</option>' +
+              '<option value="other">Other</option>' +
+            "</select>" +
+            '<input type="file" accept="image/*,application/pdf" id="attInput" class="hidden"/>' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="attAddBtn"' + (atts.length >= MFG.ATTACHMENT_MAX_COUNT ? " disabled" : "") + '>' + MFGUI.ICONS.paperclip + " Attach File</button>" +
+          "</div>" +
+        "</div>" +
+        (atts.length === 0
+          ? '<p class="text-tertiary" style="font-size:12.5px;">No files attached yet. Attach proof of payment, a signed copy, or anything else worth keeping with this invoice — stored right in the app, up to ' + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + 'MB per file, ' + MFG.ATTACHMENT_MAX_COUNT + ' per invoice.</p>'
+          : '<div class="attachment-list">' + atts.map(invoiceAttachmentRowHtml).join("") + "</div>"
+        ) +
+      "</div>"
+    );
+  }
+
   function render() {
     var status = currentStatus();
     var draft = isDraft();
@@ -4349,6 +4565,9 @@ table.table a:hover { text-decoration: underline; }
           '<div class="field"><label>Notes</label><textarea class="input" id="fNotes" rows="3" placeholder="Thanks for your business!"' + (draft ? "" : " disabled") + '>' + MFGUI.escapeHtml(state.notes) + "</textarea>" +
           '<span class="hint">Shown on the printed invoice, under Payment Instructions (set the default instructions themselves in Settings).</span></div>' +
         "</div>" +
+
+        paymentsHistoryCardHtml() +
+        attachmentsCardHtml() +
 
         '<div class="editor-actionbar">' +
           '<button class="btn btn-secondary btn-sm" id="printBtn">' + MFGUI.ICONS.print + " Print / Save as PDF</button>" +
@@ -4591,6 +4810,73 @@ table.table a:hover { text-decoration: underline; }
     var payBtn = document.getElementById("payBtn");
     if (payBtn) payBtn.addEventListener("click", openPaymentModal);
 
+    shell.contentEl.querySelectorAll("[data-remove-pay]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var payId = btn.getAttribute("data-remove-pay");
+        MFGUI.confirmDialog({
+          title: "Delete payment record?",
+          description: "This will increase this invoice's balance due again.",
+          confirmLabel: "Delete",
+          onConfirm: function () {
+            MFG.deletePayment(payId);
+            data = MFG.getData();
+            existing = data.invoices.find(function (i) { return i.id === id; });
+            MFGUI.toast("Payment removed.", "info");
+            render();
+          },
+        });
+      });
+    });
+
+    var attAddBtn = document.getElementById("attAddBtn");
+    var attInput = document.getElementById("attInput");
+    if (attAddBtn && attInput) {
+      attAddBtn.addEventListener("click", function () { attInput.click(); });
+      attInput.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        if (file.size > MFG.ATTACHMENT_MAX_BYTES) {
+          MFGUI.toast("That file is too large — attachments are capped at " + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB each.", "error");
+          attInput.value = "";
+          return;
+        }
+        var kind = document.getElementById("attKind").value;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var res = MFG.addInvoiceAttachment(existing.id, {
+            name: file.name,
+            mimeType: file.type || "application/octet-stream",
+            size: file.size,
+            dataUrl: reader.result,
+            kind: kind,
+          });
+          if (!res.ok) { MFGUI.toast(res.error, "error"); return; }
+          MFGUI.toast("Attachment added.");
+          data = MFG.getData();
+          existing = data.invoices.find(function (i) { return i.id === id; });
+          render();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    shell.contentEl.querySelectorAll("[data-remove-att]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var attId = btn.getAttribute("data-remove-att");
+        MFGUI.confirmDialog({
+          title: "Remove attachment?",
+          description: "This permanently deletes the file from this invoice.",
+          confirmLabel: "Remove",
+          onConfirm: function () {
+            MFG.removeInvoiceAttachment(existing.id, attId);
+            data = MFG.getData();
+            existing = data.invoices.find(function (i) { return i.id === id; });
+            MFGUI.toast("Attachment removed.", "info");
+            render();
+          },
+        });
+      });
+    });
+
     var applyCreditBtn = document.getElementById("applyCreditBtn");
     if (applyCreditBtn) applyCreditBtn.addEventListener("click", openApplyCreditModal);
 
@@ -4681,7 +4967,10 @@ table.table a:hover { text-decoration: underline; }
           ["Bank Transfer", "Credit Card", "Cash", "Check", "PayPal", "Other"].map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("") +
         "</select></div>" +
       "</div>" +
-      '<div class="field"><label>Note</label><textarea class="input" id="pNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>';
+      '<div class="field"><label>Note</label><textarea class="input" id="pNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>' +
+      '<div class="field"><label>Attach receipt <span class="text-tertiary" style="font-weight:400;">(optional)</span></label>' +
+        '<input type="file" class="input" id="pReceipt" accept="image/*,application/pdf"/>' +
+        '<span class="hint">A bank transfer confirmation, receipt photo, or anything else worth keeping as proof — up to ' + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + 'MB.</span></div>';
 
     MFGUI.openModal({
       title: "Record Payment",
@@ -4696,18 +4985,44 @@ table.table a:hover { text-decoration: underline; }
             root.querySelector("#pAmountErr").classList.remove("hidden");
             return;
           }
-          MFG.recordPayment({
-            invoiceId: existing.id,
-            amount: amount,
-            date: root.querySelector("#pDate").value || MFG.todayISO(),
-            method: root.querySelector("#pMethod").value,
-            note: root.querySelector("#pNote").value.trim() || undefined,
-          });
-          MFGUI.toast("Payment recorded.");
-          close();
-          data = MFG.getData();
-          existing = data.invoices.find(function (i) { return i.id === id; });
-          render();
+          var file = root.querySelector("#pReceipt").files[0];
+          if (file && file.size > MFG.ATTACHMENT_MAX_BYTES) {
+            MFGUI.toast("That receipt is too large — attachments are capped at " + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB.", "error");
+            return;
+          }
+          function finish(receiptFile) {
+            var rec = MFG.recordPayment({
+              invoiceId: existing.id,
+              amount: amount,
+              date: root.querySelector("#pDate").value || MFG.todayISO(),
+              method: root.querySelector("#pMethod").value,
+              note: root.querySelector("#pNote").value.trim() || undefined,
+            });
+            if (receiptFile) {
+              MFG.addInvoiceAttachment(existing.id, {
+                name: receiptFile.name,
+                mimeType: receiptFile.mimeType || "application/octet-stream",
+                size: receiptFile.size,
+                dataUrl: receiptFile.dataUrl,
+                kind: "proof_of_payment",
+                paymentId: rec.id,
+              });
+            }
+            MFGUI.toast(receiptFile ? "Payment recorded and receipt attached." : "Payment recorded.");
+            close();
+            data = MFG.getData();
+            existing = data.invoices.find(function (i) { return i.id === id; });
+            render();
+          }
+          if (file) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              finish({ name: file.name, mimeType: file.type, size: file.size, dataUrl: reader.result });
+            };
+            reader.readAsDataURL(file);
+          } else {
+            finish(null);
+          }
         });
       },
     });

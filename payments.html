@@ -1182,7 +1182,12 @@ table.table a:hover { text-decoration: underline; }
       items: parsed.items || [],
       productionOrders: parsed.productionOrders || [],
       customers: parsed.customers || [],
-      invoices: parsed.invoices || [],
+      // Same "every record gets a normalized attachments array, even one
+      // saved before this feature existed" discipline as purchase orders
+      // below — keeps every call site free of `|| []` guards of its own.
+      invoices: (parsed.invoices || []).map(function (inv) {
+        return Object.assign({ attachments: [] }, inv, { attachments: inv.attachments || [] });
+      }),
       payments: parsed.payments || [],
       creditNotes: parsed.creditNotes || [],
       movements: parsed.movements || [],
@@ -1829,6 +1834,13 @@ table.table a:hover { text-decoration: underline; }
   }
   function deleteVendorPayment(id) {
     data.vendorPayments = data.vendorPayments.filter(function (x) { return x.id !== id; });
+    // Same cleanup as deletePayment on the customer side — a proof-of-
+    // payment attachment tied to this specific payment shouldn't outlive
+    // the payment record it was evidence for.
+    data.purchaseOrders.forEach(function (po) {
+      if (!po.attachments || !po.attachments.length) return;
+      po.attachments = po.attachments.filter(function (a) { return a.paymentId !== id; });
+    });
     persist();
   }
   function poAmountPaid(poId) {
@@ -1885,7 +1897,7 @@ table.table a:hover { text-decoration: underline; }
     var s = data.settings;
     var number = input.number || (s.invoicePrefix + "-" + s.nextInvoiceSeq);
     var bumpSeq = !input.number;
-    var rec = Object.assign({}, input, {
+    var rec = Object.assign({ attachments: [] }, input, {
       number: number,
       id: uid(),
       stockApplied: false,
@@ -1956,6 +1968,33 @@ table.table a:hover { text-decoration: underline; }
     });
     persist();
   }
+  // Attachments on an invoice (a signed copy, proof of payment received,
+  // anything worth keeping with the record) — same shape and same caps as
+  // addPoAttachment/removePoAttachment above, so the accounts-receivable
+  // side keeps a record exactly as easily as accounts-payable does.
+  function addInvoiceAttachment(invoiceId, attachment) {
+    var inv = data.invoices.find(function (x) { return x.id === invoiceId; });
+    if (!inv) return { ok: false, error: "Invoice not found." };
+    inv.attachments = inv.attachments || [];
+    if (inv.attachments.length >= ATTACHMENT_MAX_COUNT) {
+      return { ok: false, error: "Each invoice can hold up to " + ATTACHMENT_MAX_COUNT + " attachments — remove one first." };
+    }
+    if ((attachment.size || 0) > ATTACHMENT_MAX_BYTES) {
+      return { ok: false, error: "That file is too large — attachments are capped at " + Math.round(ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB each (this app stores everything in the browser, with no server behind it)." };
+    }
+    var rec = Object.assign({}, attachment, { id: uid(), uploadedAt: nowISO() });
+    inv.attachments.push(rec);
+    inv.updatedAt = nowISO();
+    persist();
+    return { ok: true, attachment: rec };
+  }
+  function removeInvoiceAttachment(invoiceId, attachmentId) {
+    var inv = data.invoices.find(function (x) { return x.id === invoiceId; });
+    if (!inv) return;
+    inv.attachments = (inv.attachments || []).filter(function (a) { return a.id !== attachmentId; });
+    inv.updatedAt = nowISO();
+    persist();
+  }
 
   // ---------- payments ----------
   function recordPayment(input) {
@@ -1966,6 +2005,14 @@ table.table a:hover { text-decoration: underline; }
   }
   function deletePayment(id) {
     data.payments = data.payments.filter(function (x) { return x.id !== id; });
+    // A receipt attached at the moment this payment was recorded belongs
+    // to the payment, not the invoice in general — if the payment record
+    // goes, its attachment shouldn't linger behind as an orphan with
+    // nothing to explain what it was proof of.
+    data.invoices.forEach(function (inv) {
+      if (!inv.attachments || !inv.attachments.length) return;
+      inv.attachments = inv.attachments.filter(function (a) { return a.paymentId !== id; });
+    });
     persist();
   }
 
@@ -2135,6 +2182,10 @@ table.table a:hover { text-decoration: underline; }
       return sum + (po.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
     }, 0);
     var attachmentCount = (data.purchaseOrders || []).reduce(function (sum, po) { return sum + (po.attachments || []).length; }, 0);
+    var invoiceAttachmentBytes = (data.invoices || []).reduce(function (sum, inv) {
+      return sum + (inv.attachments || []).reduce(function (s, a) { return s + (a.size || 0); }, 0);
+    }, 0);
+    var invoiceAttachmentCount = (data.invoices || []).reduce(function (sum, inv) { return sum + (inv.attachments || []).length; }, 0);
     // Per-category size is measured by stringifying just that array — not
     // exact (JSON overhead/whitespace is counted once, not per-array), but
     // more than close enough to answer "what's actually taking the space",
@@ -2143,15 +2194,19 @@ table.table a:hover { text-decoration: underline; }
       var arr = data[cat.key] || [];
       var catBytes = arr.length ? JSON.stringify(arr).length : 0;
       if (cat.key === "purchaseOrders") catBytes -= attachmentBytes; // counted separately below
+      if (cat.key === "invoices") catBytes -= invoiceAttachmentBytes; // counted separately below
       return { key: cat.key, label: cat.label, bytes: Math.max(0, catBytes), count: arr.length };
     });
     if (attachmentBytes > 0) breakdown.push({ key: "attachments", label: "PO attachments", bytes: attachmentBytes, count: attachmentCount });
+    if (invoiceAttachmentBytes > 0) breakdown.push({ key: "invoiceAttachments", label: "Invoice attachments", bytes: invoiceAttachmentBytes, count: invoiceAttachmentCount });
     if (logoBytes > 0) breakdown.push({ key: "logo", label: "Business logo", bytes: logoBytes, count: 1 });
     breakdown.sort(function (a, b) { return b.bytes - a.bytes; });
     return {
       bytes: bytes,
       attachmentBytes: attachmentBytes,
       attachmentCount: attachmentCount,
+      invoiceAttachmentBytes: invoiceAttachmentBytes,
+      invoiceAttachmentCount: invoiceAttachmentCount,
       logoBytes: logoBytes,
       breakdown: breakdown,
       degraded: storageDegraded,
@@ -2263,6 +2318,8 @@ table.table a:hover { text-decoration: underline; }
 
     recordPayment: recordPayment,
     deletePayment: deletePayment,
+    addInvoiceAttachment: addInvoiceAttachment,
+    removeInvoiceAttachment: removeInvoiceAttachment,
 
     CREDIT_NOTE_REASONS: CREDIT_NOTE_REASONS,
     findCreditNote: findCreditNote,
@@ -2301,7 +2358,7 @@ table.table a:hover { text-decoration: underline; }
 (function (global) {
   "use strict";
 
-  var BUILD_DATE = "2026-08-27 12:40";
+  var BUILD_DATE = "2026-08-27 14:01";
 
   var ICONS = {
     dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
@@ -2649,7 +2706,10 @@ table.table a:hover { text-decoration: underline; }
           ["Bank Transfer", "Credit Card", "Cash", "Check", "PayPal", "Other"].map(function (m) { return '<option value="' + m + '">' + m + "</option>"; }).join("") +
         "</select></div>" +
       "</div>" +
-      '<div class="field"><label>Note</label><textarea class="input" id="vpNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>';
+      '<div class="field"><label>Note</label><textarea class="input" id="vpNote" rows="2" placeholder="Optional reference number, etc."></textarea></div>' +
+      '<div class="field"><label>Attach receipt <span class="text-tertiary" style="font-weight:400;">(optional)</span></label>' +
+        '<input type="file" class="input" id="vpReceipt" accept="image/*,application/pdf"/>' +
+        '<span class="hint">A bank transfer confirmation, receipt photo, or anything else worth keeping as proof — up to ' + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + 'MB.</span></div>';
 
     openModal({
       title: "Record Payment — " + po.number,
@@ -2664,16 +2724,42 @@ table.table a:hover { text-decoration: underline; }
             root.querySelector("#vpAmountErr").classList.remove("hidden");
             return;
           }
-          MFG.recordVendorPayment({
-            purchaseOrderId: po.id,
-            amount: amount,
-            date: root.querySelector("#vpDate").value || MFG.todayISO(),
-            method: root.querySelector("#vpMethod").value,
-            note: root.querySelector("#vpNote").value.trim() || undefined,
-          });
-          toast("Payment recorded.");
-          close();
-          if (onSaved) onSaved();
+          var file = root.querySelector("#vpReceipt").files[0];
+          if (file && file.size > MFG.ATTACHMENT_MAX_BYTES) {
+            toast("That receipt is too large — attachments are capped at " + Math.round(MFG.ATTACHMENT_MAX_BYTES / 1024 / 1024 * 10) / 10 + "MB.", "error");
+            return;
+          }
+          function finish(receiptFile) {
+            var rec = MFG.recordVendorPayment({
+              purchaseOrderId: po.id,
+              amount: amount,
+              date: root.querySelector("#vpDate").value || MFG.todayISO(),
+              method: root.querySelector("#vpMethod").value,
+              note: root.querySelector("#vpNote").value.trim() || undefined,
+            });
+            if (receiptFile) {
+              MFG.addPoAttachment(po.id, {
+                name: receiptFile.name,
+                mimeType: receiptFile.mimeType || "application/octet-stream",
+                size: receiptFile.size,
+                dataUrl: receiptFile.dataUrl,
+                kind: "proof_of_payment",
+                paymentId: rec.id,
+              });
+            }
+            toast(receiptFile ? "Payment recorded and receipt attached." : "Payment recorded.");
+            close();
+            if (onSaved) onSaved();
+          }
+          if (file) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              finish({ name: file.name, mimeType: file.type, size: file.size, dataUrl: reader.result });
+            };
+            reader.readAsDataURL(file);
+          } else {
+            finish(null);
+          }
         });
       },
     });
@@ -4009,6 +4095,40 @@ table.table a:hover { text-decoration: underline; }
     return doc;
   }
 
+  // Same idea for a purchase order — same numbers and layout language as
+  // printPurchaseOrder()'s HTML version above, so a vendor gets an
+  // identical document whether it was printed/saved or sent via WhatsApp.
+  function buildPurchaseOrderPdfDoc(po, vendor, settings) {
+    var doc = new global.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    var total = MFG.computePoTotal(po);
+    var metaLines = [
+      { label: "Issued", value: MFG.formatDate(po.issueDate) },
+      { label: "Expected", value: po.expectedDate ? MFG.formatDate(po.expectedDate) : "—" },
+    ];
+    var y = pdfLetterhead(doc, settings, "PURCHASE ORDER", po.number, metaLines);
+    var vendorLines = vendor ? [vendor.name, vendor.company, vendor.email, vendor.address, vendor.taxId ? "Tax / VAT ID: " + vendor.taxId : ""].filter(Boolean) : ["—"];
+    y = pdfBillBlock(doc, y, "Vendor", vendorLines);
+    var rows = (po.items || []).map(function (it) {
+      return {
+        description: it.description || "—",
+        quantity: it.quantity,
+        unitCost: MFG.formatCurrency(it.unitCost, po.currency),
+        amount: MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.unitCost || 0)), po.currency),
+      };
+    });
+    var tableW = pdfMetrics(doc).w - pdfMetrics(doc).margin * 2;
+    y = pdfTable(doc, y, [
+      { key: "description", label: "Description", width: tableW * 0.46, align: "left" },
+      { key: "quantity", label: "Qty", width: tableW * 0.14, align: "right" },
+      { key: "unitCost", label: "Unit Cost", width: tableW * 0.2, align: "right" },
+      { key: "amount", label: "Amount", width: tableW * 0.2, align: "right" },
+    ], rows);
+    y = pdfTotalBox(doc, y, "Total", MFG.formatCurrency(total, po.currency));
+    if (po.notes) y = pdfParagraph(doc, y, "Notes", po.notes);
+    pdfFooter(doc);
+    return doc;
+  }
+
   // Shares a freshly built PDF to WhatsApp. There are exactly two real
   // mechanisms any browser exposes for this — no plain web page can
   // attach a file to WhatsApp on someone else's behalf beyond these:
@@ -4102,6 +4222,18 @@ table.table a:hover { text-decoration: underline; }
     });
   }
 
+  function sharePurchaseOrderViaWhatsApp(po, vendor, settings) {
+    var total = MFG.computePoTotal(po);
+    shareViaWhatsApp({
+      buildDoc: function () { return buildPurchaseOrderPdfDoc(po, vendor, settings); },
+      filename: "Purchase-Order-" + po.number + ".pdf",
+      contactName: vendor && vendor.name,
+      contactPhone: vendor && vendor.phone,
+      message: "Hi" + (vendor && vendor.name ? " " + vendor.name : "") + ", please find purchase order " + po.number +
+        " for " + MFG.formatCurrency(total, po.currency) + " from " + (settings.businessName || "us") + ". Thank you!",
+    });
+  }
+
   global.MFGUI = {
     ICONS: ICONS,
     applyAccent: applyAccent,
@@ -4140,6 +4272,7 @@ table.table a:hover { text-decoration: underline; }
     debounce: debounce,
     shareInvoiceViaWhatsApp: shareInvoiceViaWhatsApp,
     shareCreditNoteViaWhatsApp: shareCreditNoteViaWhatsApp,
+    sharePurchaseOrderViaWhatsApp: sharePurchaseOrderViaWhatsApp,
   };
 })(window);
 
