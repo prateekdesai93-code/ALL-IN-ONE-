@@ -19,20 +19,25 @@ are unaffected and still available on their own.
 
 ## What's in this folder
 
-Just 10 files — no folders, nothing to lose during upload:
+15 pages plus this README — no folders, nothing to lose during upload:
 
 ```
-index.html          ← Dashboard (open this one first)
-products.html         ← Materials & finished goods catalog, BOM editor
-production.html         ← Turn materials into finished stock (Simple or Advanced)
-customers.html            ← Customer directory
-invoices.html               ← All invoices, search/filter, payments, print
-editor.html                   ← Create/edit an invoice, pick items, send
-credit-notes.html               ← Issue credit notes, apply them to invoices
-payments.html                     ← Full payment history
-reports.html                        ← Revenue, production output, material usage
-settings.html                         ← Business profile, production mode, backup
-README.md                               ← This file
+index.html               ← Dashboard (open this one first)
+products.html             ← Materials & finished goods catalog
+bom.html                    ← Bill of Materials editor
+production.html               ← Turn materials into finished stock (Simple or Advanced)
+vendors.html                    ← Supplier directory
+purchase-orders.html              ← All purchase orders, search/filter, print
+po-editor.html                      ← Create/edit a purchase order
+accounts-payable.html                 ← What you owe vendors, record vendor payments
+customers.html                          ← Customer directory
+invoices.html                             ← All invoices, search/filter, payments, print
+editor.html                                 ← Create/edit an invoice, pick items, send, WhatsApp
+credit-notes.html                             ← Issue credit notes, apply them to invoices
+payments.html                                   ← Full payment history
+reports.html                                      ← Revenue, production output, material usage
+settings.html                                       ← Business profile, tax ID, invoicing, backup
+README.md                                             ← This file
 ```
 
 ## Setting your customer's access code — do this before you hand it over
@@ -46,12 +51,12 @@ publishing, or anyone who has this README can get in.
 2. Press Ctrl+F / Cmd+F and search for `mfg2026`.
 3. Replace it with whatever code you want to give this customer — for
    example `"smith-jan-2026"`. Keep the quote marks around it.
-4. **Repeat this in all 10 `.html` files** — each page checks its own copy
+4. **Repeat this in all 15 `.html` files** — each page checks its own copy
    of the code, so if you skip one, that page will still ask for the old
    code. (This is quick to do with your editor's "Find in Folder / Replace
-   in Files" feature if it has one — search for `mfg2026` across all 10
+   in Files" feature if it has one — search for `mfg2026` across all 15
    files at once and replace every occurrence.)
-5. Save all 10 files, then upload them to GitHub as normal.
+5. Save all 15 files, then upload them to GitHub as normal.
 
 Give your customer the web address plus the code you chose. The first
 time they visit, they'll see an "Enter Access Code" screen; once they type
@@ -75,7 +80,7 @@ you're in.
 
 1. Open your repository on GitHub.
 2. Click **Add file → Upload files**.
-3. Drag in all 10 `.html` files plus this `README.md`. Check the box shows
+3. Drag in all 15 `.html` files plus this `README.md`. Check the box shows
    exactly those files before committing — no folders.
 4. Click **Commit changes**.
 5. Go to **Settings → Pages**. Set **Source** to **Deploy from a branch**,
@@ -178,6 +183,51 @@ on the credit note.
   choose "Save as PDF" as the destination. This works completely
   offline, no external library required.
 
+## Business profile, tax registration, and vendor tax IDs
+
+**Settings → Business Profile** is where your logo, business name,
+address, and contact details live, printed on every invoice, credit
+note, and purchase order letterhead. Right below it, **Tax / VAT
+Registration** holds your own business's registration number —
+whatever your jurisdiction calls it (VAT No., GSTIN, EIN, Company
+Reg. No., ABN…). Both the label and the number are yours to set;
+leave the number blank and it's simply left off printed documents.
+Settings itself is organized into tabs — Business Profile, Invoicing
+& Documents, Production & Inventory, Appearance, and Backup & Data —
+so each screen stays focused instead of one long scroll.
+
+Vendors carry their own **Tax / VAT / Registration No.** field too
+(Vendors → Add/Edit Vendor), which prints on that vendor's purchase
+orders and appears in the Excel export's Vendors sheet.
+
+## Sending invoices and credit notes via WhatsApp
+
+Next to **Print / Save as PDF** on the invoice editor, the invoices
+list, and the credit notes list, a **Send via WhatsApp** button builds
+a real PDF of that document and hands it to WhatsApp two different
+ways depending on what the visitor's browser supports — these are the
+only two mechanisms any web page has for this, not a limitation of
+this app specifically:
+
+- **On most phones** (where the browser supports sharing files), it
+  opens the native share sheet with the PDF already attached — picking
+  WhatsApp there sends the real file in one tap.
+- **On most desktop browsers** (which don't yet support sharing files
+  from a web page), the PDF downloads automatically and a WhatsApp
+  chat opens pre-filled with a short message, ready for that
+  just-downloaded file to be dragged in. WhatsApp's own chat links
+  only ever accept text, never a file attachment — that's a platform
+  limit, the same reason the Email button next to it asks you to
+  attach the downloaded PDF by hand too.
+
+The number it messages is that customer's or vendor's **Phone** field
+(Customers/Vendors → Add/Edit) — add one there if a WhatsApp chat
+isn't opening. Building the PDF itself needs an internet connection
+the first time it's used per browser session (it loads a small,
+widely-used PDF library, jsPDF, from a public CDN) — everything else
+in this app, including Print/Save as PDF, keeps working completely
+offline either way.
+
 ## What this app deliberately leaves out of v1
 
 - **No multi-level Bills of Materials.** A finished good's BOM lists
@@ -209,20 +259,24 @@ is sent anywhere, no account, no login beyond the access code.
 - Data does **not** sync between devices, browsers, or visitors — each
   person who unlocks the app has their own separate data.
 - Clearing browser site data erases it.
-- **Settings → Backup & Restore** downloads/restores a `.json` backup
-  containing everything: materials, finished goods, BOMs, production
-  orders, customers, invoices, credit notes, and payments. Use this to
-  move data between devices or restore after clearing browser data.
-- **Settings → Export All Data (Excel)** downloads a nicely formatted
-  `.xlsx` workbook with your business name in the file name — a cover
-  sheet with your business details, plus separate sheets for items,
-  BOM lines, production orders, customers, invoices, invoice line
-  items, credit notes, payments, and stock movements. This is for
-  reporting/sharing/printing, not for restoring data into the app —
-  use the `.json` backup for that. It loads a public spreadsheet
-  library from a CDN (cdnjs.cloudflare.com) the first time you use it,
-  so it needs an internet connection. Everything else, including
-  production and printing invoices, works completely offline.
+- **Settings → Backup & Data → Export backup (.json)** downloads/restores
+  a `.json` backup containing everything: materials, finished goods,
+  BOMs, production orders, vendors, purchase orders, customers,
+  invoices, credit notes, and payments. Use this to move data between
+  devices or restore after clearing browser data.
+- **Settings → Backup & Data → Export All Data (Excel)** downloads a
+  nicely formatted `.xlsx` workbook with your business name in the file
+  name — a cover sheet with your business details (including your Tax
+  / VAT registration number), plus separate sheets for items, BOM
+  lines, production orders, vendors, purchase orders, purchase order
+  line items, customers, invoices, invoice line items, credit notes,
+  payments, and stock movements. This is for reporting/sharing/
+  printing, not for restoring data into the app — use the `.json`
+  backup for that. It's built entirely on-device with no CDN
+  dependency, so — like production and printing invoices — it works
+  completely offline. (Sending a document via WhatsApp is the one
+  feature in this app that does need an internet connection the first
+  time it's used per session — see above.)
 
 ## Customizing
 

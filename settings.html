@@ -517,7 +517,7 @@ textarea.input { resize: vertical; min-height: 72px; }
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .chip:hover { background: var(--surface-hover); }
 .chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
@@ -627,7 +627,10 @@ html:not(.unlocked) .mobile-topbar {
   display: flex; align-items: center; justify-content: center;
   z-index: 500;
   padding: 20px;
+  animation: fadeIn 0.18s ease;
+  transition: opacity 0.15s ease;
 }
+.lock-screen.leaving { opacity: 0; }
 .lock-card {
   width: 100%; max-width: 360px;
   border: 1px solid var(--border-strong);
@@ -636,6 +639,7 @@ html:not(.unlocked) .mobile-topbar {
   text-align: center;
   display: flex; flex-direction: column; gap: 14px;
   box-shadow: var(--shadow-2);
+  animation: slideUp 0.22s ease;
 }
 .lock-mark {
   width: 44px; height: 44px;
@@ -1044,7 +1048,11 @@ table.table a:hover { text-decoration: underline; }
     function attempt() {
       if (input.value === ACCESS_CODE) {
         markUnlocked();
-        overlay.remove();
+        // A quick fade rather than an instant cut — the dashboard behind
+        // it is already rendered and waiting, so this is purely about
+        // not making the transition feel like a jump-cut.
+        overlay.classList.add("leaving");
+        setTimeout(function () { overlay.remove(); }, 150);
       } else {
         err.classList.add("show");
         input.value = "";
@@ -1100,6 +1108,14 @@ table.table a:hover { text-decoration: underline; }
     phone: "",
     address: "",
     website: "",
+    // The business's own tax/VAT/company-registration identifier — same
+    // pattern as taxLabel below (a user-editable label plus the value),
+    // since what this is called and how it's formatted varies by
+    // jurisdiction (VAT No., GSTIN, EIN, Company Reg. No., ABN…). Printed
+    // on every invoice, credit note, and purchase order letterhead once
+    // set; blank means it's simply left off, no placeholder text shown.
+    taxIdLabel: "Tax / VAT ID",
+    taxId: "",
     currency: "USD",
     customSymbol: "",
     theme: "dark",
@@ -2298,7 +2314,7 @@ table.table a:hover { text-decoration: underline; }
 (function (global) {
   "use strict";
 
-  var BUILD_DATE = "2026-08-24";
+  var BUILD_DATE = "2026-08-27 09:06";
 
   var ICONS = {
     dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
@@ -2319,6 +2335,7 @@ table.table a:hover { text-decoration: underline; }
     upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>',
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 10l6 6 6-6"/><path d="M4 20h16"/></svg>',
     print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M6 17v4h12v-4"/></svg>',
+    whatsapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3C7 3 3 6.8 3 11.5c0 2 .8 3.9 2.1 5.4L4 21l4.3-1.1c1.1.5 2.4.8 3.7.8 5 0 9-3.8 9-8.5S17 3 12 3Z"/><path d="M8.7 10.4c.2 2.5 2.3 4.6 4.8 4.8.6.1 1.1-.4 1.1-1v-.5c0-.3-.2-.5-.4-.6l-1.2-.5c-.3-.1-.6 0-.7.2l-.3.4c-.9-.5-1.7-1.3-2.2-2.2l.4-.3c.2-.2.3-.5.2-.7l-.5-1.2c-.1-.2-.3-.4-.6-.4h-.5c-.6 0-1.1.5-1.1 1.1Z"/></svg>',
     wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18a2 2 0 0 1 2 2v2"/><path d="M3 7.5V18a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2H6a3 3 0 0 1 0-6h12"/><circle cx="16.5" cy="13.5" r="1.5"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
     pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
@@ -3576,6 +3593,7 @@ table.table a:hover { text-decoration: underline; }
           "<h1>" + escapeHtml(settings.businessName || "Your Business") + "</h1>" +
           (settings.address ? '<p class="muted addr">' + escapeHtml(settings.address) + "</p>" : "") +
           [settings.email, settings.phone, settings.website].filter(Boolean).map(function (v) { return '<p class="muted">' + escapeHtml(v) + "</p>"; }).join("") +
+          (settings.taxId ? '<p class="muted">' + escapeHtml(settings.taxIdLabel || "Tax / VAT ID") + ": " + escapeHtml(settings.taxId) + "</p>" : "") +
         "</div>" +
         '<div class="doc-block">' +
           '<div class="doc-type">' + escapeHtml(docType) + "</div>" +
@@ -3685,7 +3703,7 @@ table.table a:hover { text-decoration: underline; }
       { label: "Issued", value: MFG.formatDate(po.issueDate) },
       { label: "Expected", value: po.expectedDate ? MFG.formatDate(po.expectedDate) : "—" },
     ];
-    var vendorLines = vendor ? [vendor.name, vendor.company, vendor.email, vendor.address].filter(Boolean) : ["—"];
+    var vendorLines = vendor ? [vendor.name, vendor.company, vendor.email, vendor.address, vendor.taxId ? "Tax / VAT ID: " + vendor.taxId : ""].filter(Boolean) : ["—"];
     var html =
       printLetterhead(settings, "PURCHASE ORDER", po.number, metaLines) +
       '<div class="bill-to">' +
@@ -3701,6 +3719,400 @@ table.table a:hover { text-decoration: underline; }
       (po.notes ? '<h2>Notes</h2><p class="muted">' + escapeHtml(po.notes) + "</p>" : "") +
       '<div class="doc-footer"><div class="thanks">Thank you.</div><div class="stamp">Generated ' + MFG.formatDate(MFG.todayISO()) + "</div></div>";
     openPrintWindow("Purchase Order " + po.number, html);
+  }
+
+  // ---------- lightweight debounce (shared) ----------
+  // Delays a function until calls stop arriving for `waitMs` — used to
+  // keep typing in a search box instant while the (potentially more
+  // expensive, on a large list) full re-render only happens once a
+  // visitor actually pauses, instead of on every single keystroke.
+  function debounce(fn, waitMs) {
+    var timer = null;
+    return function () {
+      var args = arguments, ctx = this;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () { fn.apply(ctx, args); }, waitMs);
+    };
+  }
+
+  // ---------- WhatsApp document sharing ----------
+  // Every other export in this app (backup .json, Print/Save-as-PDF,
+  // even the Excel workbook) works completely offline because none of
+  // them need anything beyond what a browser already ships with. A real
+  // PDF *file* that can be handed to another app's native share sheet is
+  // different — writing a PDF encoder from scratch would mean
+  // reimplementing exactly the kind of thing this app deliberately
+  // avoids elsewhere (see the Excel export's own comment nearby). This
+  // instead loads jsPDF — a small, widely used, MIT-licensed PDF
+  // library — from a public CDN the first time it's actually needed,
+  // the same tradeoff the old Excel export used to make before it was
+  // rewritten to be fully offline. It costs an internet connection for
+  // this one feature only; initial page load never touches the network
+  // for it, and nothing else in the app is affected either way.
+  var JSPDF_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js";
+  var jsPdfState = "idle"; // idle | loading | ready | error
+  var jsPdfWaiters = [];
+  function loadJsPDF(cb) {
+    if (global.jspdf && global.jspdf.jsPDF) { jsPdfState = "ready"; cb(true); return; }
+    if (jsPdfState === "ready") { cb(true); return; }
+    jsPdfWaiters.push(cb);
+    if (jsPdfState === "loading") return;
+    jsPdfState = "loading";
+    var s = document.createElement("script");
+    s.src = JSPDF_URL;
+    s.async = true;
+    s.onload = function () {
+      jsPdfState = (global.jspdf && global.jspdf.jsPDF) ? "ready" : "error";
+      var waiters = jsPdfWaiters; jsPdfWaiters = [];
+      waiters.forEach(function (f) { f(jsPdfState === "ready"); });
+    };
+    s.onerror = function () {
+      jsPdfState = "error";
+      var waiters = jsPdfWaiters; jsPdfWaiters = [];
+      waiters.forEach(function (f) { f(false); });
+    };
+    document.head.appendChild(s);
+  }
+
+  function pdfMetrics(doc) {
+    return { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), margin: 42 };
+  }
+  function pdfGuessImageFormat(dataUrl) {
+    if (/^data:image\/png/i.test(dataUrl)) return "PNG";
+    if (/^data:image\/webp/i.test(dataUrl)) return "WEBP";
+    return "JPEG";
+  }
+
+  // Draws the same letterhead as the print/PDF window above, using
+  // jsPDF's own drawing primitives (text/lines/rects) instead of
+  // rasterizing the HTML version — keeps the output crisp, small, and
+  // text-selectable rather than a screenshot glued into a page.
+  function pdfLetterhead(doc, settings, docType, docNumber, metaLines) {
+    var m = pdfMetrics(doc);
+    var x = m.margin, rightX = m.w - m.margin, y = m.margin;
+
+    if (settings.logoDataUrl && !/^data:image\/svg/i.test(settings.logoDataUrl)) {
+      try {
+        // jsPDF needs an explicit width/height and there's no
+        // synchronous way to read a data URL's natural pixel size, so
+        // this uses a fixed print box rather than guessing at the
+        // source image's aspect ratio — matches the upper bound the
+        // Settings logo preview already uses.
+        doc.addImage(settings.logoDataUrl, pdfGuessImageFormat(settings.logoDataUrl), x, y, 90, 28, undefined, "FAST");
+        y += 28 + 10;
+      } catch (e) { /* unsupported/undecodable image data — omit the logo, keep going */ }
+    }
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.setTextColor(17, 17, 17);
+    doc.text(String(settings.businessName || "Your Business"), x, y + 12);
+    y += 26;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+    if (settings.address) {
+      String(settings.address).split("\n").forEach(function (line) {
+        if (!line) return;
+        doc.text(line, x, y); y += 11.5;
+      });
+    }
+    [settings.email, settings.phone, settings.website].filter(Boolean).forEach(function (v) {
+      doc.text(String(v), x, y); y += 11.5;
+    });
+    if (settings.taxId) {
+      doc.text((settings.taxIdLabel || "Tax / VAT ID") + ": " + settings.taxId, x, y); y += 11.5;
+    }
+
+    var ry = m.margin;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(17, 17, 17);
+    doc.text(docType, rightX, ry + 10, { align: "right" });
+    ry += 20;
+    if (docNumber) {
+      doc.setFontSize(9.5);
+      var numW = doc.getTextWidth(docNumber) + 16;
+      doc.setFillColor(17, 17, 17);
+      doc.roundedRect(rightX - numW, ry - 8, numW, 15, 3, 3, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text(docNumber, rightX - numW / 2, ry + 2, { align: "center" });
+      ry += 18;
+    }
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(85, 85, 85);
+    (metaLines || []).forEach(function (ml) {
+      doc.text(ml.label + ": " + ml.value, rightX, ry, { align: "right" });
+      ry += 12;
+    });
+
+    var bottomY = Math.max(y, ry) + 8;
+    doc.setDrawColor(17, 17, 17);
+    doc.setLineWidth(1.3);
+    doc.line(x, bottomY, rightX, bottomY);
+    return bottomY + 20;
+  }
+
+  function pdfBillBlock(doc, y, label, lines) {
+    var m = pdfMetrics(doc);
+    var x = m.margin, w = m.w - m.margin * 2;
+    var boxH = 16 + lines.length * 13 + 8;
+    doc.setFillColor(246, 246, 246);
+    doc.roundedRect(x, y, w, boxH, 4, 4, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(136, 136, 136);
+    doc.text(label.toUpperCase(), x + 12, y + 15);
+    lines.forEach(function (line, i) {
+      doc.setFont("helvetica", i === 0 ? "bold" : "normal");
+      doc.setFontSize(i === 0 ? 11 : 9.5);
+      doc.setTextColor(i === 0 ? 17 : 90, i === 0 ? 17 : 90, i === 0 ? 17 : 90);
+      doc.text(String(line), x + 12, y + 30 + i * 13);
+    });
+    return y + boxH + 18;
+  }
+
+  // Generic itemized table: header row, zebra striping, right-aligned
+  // numeric columns, per-row wrapping (so a long description grows its
+  // own row instead of being cut off), and an automatic page break once
+  // a document has more line items than fit on one page.
+  function pdfTable(doc, y, columns, rows) {
+    var m = pdfMetrics(doc);
+    var x = m.margin, w = m.w - m.margin * 2;
+    var headH = 20, padY = 6, lineH = 11.5, maxLinesPerCell = 3;
+
+    function drawHeader(yy) {
+      doc.setFillColor(17, 17, 17);
+      doc.rect(x, yy, w, headH, "F");
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(255, 255, 255);
+      var cx = x;
+      columns.forEach(function (col) {
+        var tx = col.align === "right" ? cx + col.width - 8 : cx + 8;
+        doc.text(col.label.toUpperCase(), tx, yy + 13.5, { align: col.align === "right" ? "right" : "left" });
+        cx += col.width;
+      });
+      return yy + headH;
+    }
+
+    y = drawHeader(y);
+    rows.forEach(function (row, ri) {
+      var cellLines = columns.map(function (col) {
+        var val = String(row[col.key] == null ? "" : row[col.key]);
+        return doc.splitTextToSize(val, col.width - 16).slice(0, maxLinesPerCell);
+      });
+      var linesCount = 1;
+      cellLines.forEach(function (l) { if (l.length > linesCount) linesCount = l.length; });
+      var rowH = linesCount * lineH + padY * 2;
+
+      if (y + rowH > m.h - m.margin - 60) {
+        doc.addPage();
+        y = m.margin;
+        y = drawHeader(y);
+      }
+      if (ri % 2 === 1) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(x, y, w, rowH, "F");
+      }
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
+      var cx = x;
+      columns.forEach(function (col, ci) {
+        var tx = col.align === "right" ? cx + col.width - 8 : cx + 8;
+        doc.text(cellLines[ci], tx, y + padY + lineH - 2.5, { align: col.align === "right" ? "right" : "left" });
+        cx += col.width;
+      });
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.6);
+      doc.line(x, y + rowH, x + w, y + rowH);
+      y += rowH;
+    });
+    return y + 10;
+  }
+
+  function pdfTotalBox(doc, y, label, value) {
+    var m = pdfMetrics(doc);
+    var boxW = 220, boxH = 30;
+    var x = m.w - m.margin - boxW;
+    if (y + boxH > m.h - m.margin) { doc.addPage(); y = m.margin; }
+    doc.setFillColor(17, 17, 17);
+    doc.roundedRect(x, y, boxW, boxH, 5, 5, "F");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(200, 200, 200);
+    doc.text(label.toUpperCase(), x + 14, y + 13);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
+    doc.text(String(value), x + boxW - 14, y + 22, { align: "right" });
+    return y + boxH + 20;
+  }
+
+  function pdfParagraph(doc, y, heading, text) {
+    var m = pdfMetrics(doc);
+    var x = m.margin, w = m.w - m.margin * 2;
+    if (y > m.h - m.margin - 60) { doc.addPage(); y = m.margin; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(85, 85, 85);
+    doc.text(heading.toUpperCase(), x, y);
+    y += 13;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
+    var lines = doc.splitTextToSize(text, w);
+    doc.text(lines, x, y);
+    return y + lines.length * 12 + 10;
+  }
+  function pdfFooter(doc) {
+    var m = pdfMetrics(doc);
+    doc.setFont("helvetica", "italic"); doc.setFontSize(9.5); doc.setTextColor(60, 60, 60);
+    doc.text("Thank you for your business.", m.margin, m.h - m.margin);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(160, 160, 160);
+    doc.text("Generated " + MFG.formatDate(MFG.todayISO()), m.w - m.margin, m.h - m.margin, { align: "right" });
+  }
+
+  // Builds a jsPDF document for an invoice — same numbers and layout
+  // language as printInvoice()'s HTML version above, just drawn with
+  // jsPDF's own primitives instead of the browser's print engine.
+  function buildInvoicePdfDoc(invoice, customer, settings, payments, creditNotes) {
+    var doc = new global.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    var totals = MFG.computeTotals(invoice);
+    var paid = MFG.amountPaid(invoice.id, payments || []);
+    var creditApplied = MFG.creditAppliedForInvoice(invoice.id, creditNotes || []);
+    var balance = MFG.round2(totals.total - paid - creditApplied);
+    var metaLines = [
+      { label: "Issued", value: MFG.formatDate(invoice.issueDate) },
+      { label: "Due", value: MFG.formatDate(invoice.dueDate) },
+    ];
+    var y = pdfLetterhead(doc, settings, "INVOICE", invoice.number, metaLines);
+    var billLines = customer ? [customer.name, customer.company, customer.email, customer.address].filter(Boolean) : ["—"];
+    y = pdfBillBlock(doc, y, "Bill To", billLines);
+    var rows = (invoice.items || []).map(function (it) {
+      return {
+        description: it.description || "—",
+        quantity: it.quantity,
+        rate: MFG.formatCurrency(it.rate, invoice.currency),
+        amount: MFG.formatCurrency(MFG.round2((it.quantity || 0) * (it.rate || 0)), invoice.currency),
+      };
+    });
+    var tableW = pdfMetrics(doc).w - pdfMetrics(doc).margin * 2;
+    y = pdfTable(doc, y, [
+      { key: "description", label: "Description", width: tableW * 0.46, align: "left" },
+      { key: "quantity", label: "Qty", width: tableW * 0.14, align: "right" },
+      { key: "rate", label: "Rate", width: tableW * 0.2, align: "right" },
+      { key: "amount", label: "Amount", width: tableW * 0.2, align: "right" },
+    ], rows);
+    if (creditApplied > 0) {
+      y = pdfTotalBox(doc, y, "Credit Applied", "-" + MFG.formatCurrency(creditApplied, invoice.currency));
+    }
+    y = pdfTotalBox(doc, y, (paid > 0 || creditApplied > 0) ? "Balance Due" : "Total", MFG.formatCurrency((paid > 0 || creditApplied > 0) ? balance : totals.total, invoice.currency));
+    if (invoice.notes) y = pdfParagraph(doc, y, "Notes", invoice.notes);
+    if (settings.paymentInstructions) y = pdfParagraph(doc, y, "Payment Instructions", settings.paymentInstructions);
+    pdfFooter(doc);
+    return doc;
+  }
+
+  // Same idea for a standalone credit note, including its application
+  // history if it has already been applied to one or more invoices.
+  function buildCreditNotePdfDoc(creditNote, customer, settings) {
+    var doc = new global.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    var applied = (creditNote.applications || []).reduce(function (sum, a) { return sum + a.amount; }, 0);
+    var remaining = MFG.round2(creditNote.amount - applied);
+    var metaLines = [
+      { label: "Issued", value: MFG.formatDate(creditNote.date) },
+      { label: "Reason", value: creditNote.reason || "—" },
+    ];
+    var y = pdfLetterhead(doc, settings, "CREDIT NOTE", "CN-" + creditNote.id.slice(0, 8).toUpperCase(), metaLines);
+    var billLines = customer ? [customer.name, customer.company, customer.email, customer.address].filter(Boolean) : ["—"];
+    y = pdfBillBlock(doc, y, "Issued To", billLines);
+    if (creditNote.note) y = pdfParagraph(doc, y, "Note", creditNote.note);
+    if ((creditNote.applications || []).length) {
+      var tableW = pdfMetrics(doc).w - pdfMetrics(doc).margin * 2;
+      y = pdfTable(doc, y, [
+        { key: "date", label: "Applied", width: tableW * 0.7, align: "left" },
+        { key: "amount", label: "Amount", width: tableW * 0.3, align: "right" },
+      ], creditNote.applications.map(function (a) {
+        return { date: MFG.formatDate(a.date), amount: MFG.formatCurrency(a.amount) };
+      }));
+    }
+    y = pdfTotalBox(doc, y, "Remaining Credit", MFG.formatCurrency(remaining));
+    pdfFooter(doc);
+    return doc;
+  }
+
+  // Shares a freshly built PDF to WhatsApp. There are exactly two real
+  // mechanisms any browser exposes for this — no plain web page can
+  // attach a file to WhatsApp on someone else's behalf beyond these:
+  //  1. Web Share API with a file payload (mostly mobile Chrome/Safari)
+  //     — opens the OS share sheet with the PDF already attached, so
+  //     picking WhatsApp there sends the real file, no manual step.
+  //  2. Everywhere else (most desktop browsers don't support sharing
+  //     files yet): the PDF downloads automatically and a WhatsApp chat
+  //     opens pre-filled with a text message, ready for that file to be
+  //     dragged in — WhatsApp's own click-to-chat links (wa.me) only
+  //     ever accept text, never a file attachment; that's a platform
+  //     limit, the same one noted next to the Email button elsewhere in
+  //     this app, not something this code can work around.
+  function shareViaWhatsApp(opts) {
+    // opts: { buildDoc, filename, contactName, contactPhone, message }
+    toast("Preparing PDF…", "info");
+    loadJsPDF(function (ok) {
+      if (!ok) {
+        toast("Couldn't load the PDF generator — check your internet connection and try again.", "error");
+        return;
+      }
+      var doc, blob;
+      try {
+        doc = opts.buildDoc();
+        blob = doc.output("blob");
+      } catch (e) {
+        toast("Couldn't build the PDF. Try Print / Save as PDF instead.", "error");
+        return;
+      }
+      var phoneDigits = String(opts.contactPhone || "").replace(/[^0-9]/g, "");
+      // A number with no country code almost never dials correctly on
+      // wa.me — better to fall back to a plain download than open a
+      // WhatsApp chat that's all but guaranteed to fail.
+      var validPhone = phoneDigits.length >= 8;
+
+      function downloadBlob() {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = opts.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      }
+
+      function fallback() {
+        downloadBlob();
+        if (validPhone) {
+          window.open("https://wa.me/" + phoneDigits + "?text=" + encodeURIComponent(opts.message || ""), "_blank");
+          toast("PDF downloaded — attach it in the WhatsApp chat that just opened.", "info");
+        } else {
+          toast("PDF downloaded. Add a phone number for " + (opts.contactName || "this contact") + " to open a WhatsApp chat directly next time.", "info");
+        }
+      }
+
+      var file = null;
+      try { file = new File([blob], opts.filename, { type: "application/pdf" }); } catch (e) { file = null; }
+
+      if (file && global.navigator && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: opts.filename, text: opts.message || "" }).catch(function (err) {
+          if (err && err.name === "AbortError") return; // visitor cancelled the share sheet — not an error
+          fallback();
+        });
+      } else {
+        fallback();
+      }
+    });
+  }
+
+  function shareInvoiceViaWhatsApp(invoice, customer, settings, payments, creditNotes) {
+    var totals = MFG.computeTotals(invoice);
+    shareViaWhatsApp({
+      buildDoc: function () { return buildInvoicePdfDoc(invoice, customer, settings, payments, creditNotes); },
+      filename: "Invoice-" + invoice.number + ".pdf",
+      contactName: customer && customer.name,
+      contactPhone: customer && customer.phone,
+      message: "Hi" + (customer && customer.name ? " " + customer.name : "") + ", please find invoice " + invoice.number +
+        " for " + MFG.formatCurrency(totals.total, invoice.currency) + " from " + (settings.businessName || "us") + ". Thank you!",
+    });
+  }
+
+  function shareCreditNoteViaWhatsApp(creditNote, customer, settings) {
+    shareViaWhatsApp({
+      buildDoc: function () { return buildCreditNotePdfDoc(creditNote, customer, settings); },
+      filename: "Credit-Note-" + creditNote.id.slice(0, 8).toUpperCase() + ".pdf",
+      contactName: customer && customer.name,
+      contactPhone: customer && customer.phone,
+      message: "Hi" + (customer && customer.name ? " " + customer.name : "") + ", please find your credit note for " +
+        MFG.formatCurrency(creditNote.amount) + " from " + (settings.businessName || "us") + ". Thank you!",
+    });
   }
 
   global.MFGUI = {
@@ -3738,6 +4150,9 @@ table.table a:hover { text-decoration: underline; }
     printInvoice: printInvoice,
     printCreditNote: printCreditNote,
     printPurchaseOrder: printPurchaseOrder,
+    debounce: debounce,
+    shareInvoiceViaWhatsApp: shareInvoiceViaWhatsApp,
+    shareCreditNoteViaWhatsApp: shareCreditNoteViaWhatsApp,
   };
 })(window);
 
@@ -4106,7 +4521,7 @@ table.table a:hover { text-decoration: underline; }
   "use strict";
 
   var shell = MFGUI.renderShell("settings");
-  shell.setTitle("Settings", "Business profile, invoicing defaults, production mode, and backups.");
+  shell.setTitle("Settings", "Business profile, tax registration, invoicing defaults, production mode, and backups.");
 
   var CURRENCIES = MFG.CURRENCY_CODES.slice().sort();
 
@@ -4174,13 +4589,33 @@ table.table a:hover { text-decoration: underline; }
     return '<p class="text-' + tone + '" style="font-size:11.5px;margin-bottom:12px;">' + MFGUI.escapeHtml(msg) + "</p>";
   }
 
-  function render() {
-    var data = MFG.getData();
-    var s = data.settings;
+  // Settings used to be one long scroll of every card stacked on top of
+  // each other. It's now organized the same way the rest of the app
+  // organizes itself — a row of tabs, one focused screen at a time —
+  // rather than asking a visitor to hunt-and-scroll for one field among
+  // eight unrelated cards. Every field still saves the instant it's
+  // changed; switching tabs never risks losing an edit.
+  var SETTINGS_TABS = [
+    { key: "profile", label: "Business Profile" },
+    { key: "invoicing", label: "Invoicing & Documents" },
+    { key: "production", label: "Production & Inventory" },
+    { key: "appearance", label: "Appearance" },
+    { key: "data", label: "Backup & Data" },
+  ];
+  var activeTab = "profile";
 
-    shell.contentEl.innerHTML =
-      '<div class="max-width-form flex-col" style="gap:20px;">' +
+  function tabStripHtml() {
+    return (
+      '<div class="chip-row settings-tabs" role="tablist" aria-label="Settings sections">' +
+      SETTINGS_TABS.map(function (t) {
+        return '<button type="button" class="chip' + (t.key === activeTab ? " active" : "") + '" data-tab="' + t.key + '" role="tab" aria-selected="' + (t.key === activeTab ? "true" : "false") + '">' + t.label + "</button>";
+      }).join("") +
+      "</div>"
+    );
+  }
 
+  function profileTabHtml(s) {
+    return (
       '<div class="card section-card">' +
         '<h2>Business Profile</h2>' +
         '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">' +
@@ -4198,9 +4633,22 @@ table.table a:hover { text-decoration: underline; }
           '<div class="field"><label>Website</label><input class="input" id="sWebsite" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.website || "") + '"/></div>' +
         "</div>" +
         '<div class="field mt-2"><label>Business address</label><textarea class="input" id="sAddress" name="biz-location-detail" rows="3" ' + NO_AUTOFILL_ATTRS + ' placeholder="Street address\nCity, region, postal code\nCountry">' + MFGUI.escapeHtml(s.address || "") + "</textarea>" +
-        '<span class="hint">Saves automatically as you type. Drag the bottom-right corner to resize. Prints on invoices, credit notes, and purchase orders exactly as laid out here, line breaks included.</span></div>' +
+        '<span class="hint">Saves automatically as you type. Prints on invoices, credit notes, and purchase orders exactly as laid out here, line breaks included.</span></div>' +
       "</div>" +
 
+      '<div class="card section-card">' +
+        '<h2 style="margin-bottom:4px;">Tax / VAT Registration</h2>' +
+        '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Your own business\'s registration number — VAT No., GSTIN, EIN, Company Reg. No., ABN, whatever your jurisdiction calls it. Printed on every invoice, credit note, and purchase order once set here; leave the number blank to leave it off documents entirely.</p>' +
+        '<div class="form-grid">' +
+          '<div class="field"><label>Label</label><input class="input" id="sTaxIdLabel" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxIdLabel || "Tax / VAT ID") + '" placeholder="Tax / VAT ID, GSTIN, EIN…"/></div>' +
+          '<div class="field"><label>Number</label><input class="input" id="sTaxId" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxId || "") + '" placeholder="Optional"/></div>' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function invoicingTabHtml(s) {
+    return (
       '<div class="card section-card">' +
         '<h2>Invoice Defaults</h2>' +
         '<div class="form-grid">' +
@@ -4208,7 +4656,7 @@ table.table a:hover { text-decoration: underline; }
           '<div class="field"><label>Next invoice number</label><input class="input" type="number" min="1" id="sSeq" ' + NO_AUTOFILL_ATTRS + ' value="' + s.nextInvoiceSeq + '"/>' +
           '<span class="hint">Auto-increments after each new invoice.</span></div>' +
           '<div class="field"><label>Tax name</label><input class="input" id="sTaxLabel" name="tax-label-custom" ' + NO_AUTOFILL_ATTRS + ' value="' + MFGUI.escapeHtml(s.taxLabel || "Tax") + '" placeholder="Tax, VAT, GST, Sales Tax…"/>' +
-          '<span class="hint">Whatever your own tax is called — shows up on the invoice editor and every printed invoice. Saves as you type.</span></div>' +
+          '<span class="hint">Whatever your own transaction tax is called — shows up on the invoice editor and every printed invoice.</span></div>' +
           '<div class="field"><label id="sTaxRateLabel">Default ' + MFGUI.escapeHtml((s.taxLabel || "tax").toLowerCase()) + ' rate (%)</label><input class="input" type="number" min="0" id="sTax" ' + NO_AUTOFILL_ATTRS + ' value="' + s.defaultTaxRate + '"/>' +
           '<span class="hint">Starting rate on a new invoice — still editable per invoice.</span></div>' +
         "</div>" +
@@ -4224,8 +4672,12 @@ table.table a:hover { text-decoration: underline; }
           '<div class="field"><label>Next purchase order number</label><input class="input" type="number" min="1" id="sPoSeq" ' + NO_AUTOFILL_ATTRS + ' value="' + s.nextPoSeq + '"/>' +
           '<span class="hint">Auto-increments after each new purchase order.</span></div>' +
         "</div>" +
-      "</div>" +
+      "</div>"
+    );
+  }
 
+  function productionTabHtml(s) {
+    return (
       '<div class="card section-card">' +
         '<h2 style="margin-bottom:4px;">Production Mode</h2>' +
         '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Simple is a single Produce button — pick an item and quantity, done. Advanced tracks work orders on a Planned / In Progress / Done board. Switch anytime; nothing is lost either way.</p>' +
@@ -4247,8 +4699,12 @@ table.table a:hover { text-decoration: underline; }
           '<div class="field"><label>Default reorder threshold</label><input class="input" type="number" min="0" id="sThreshold" ' + NO_AUTOFILL_ATTRS + ' value="' + s.defaultReorderThreshold + '"/>' +
           '<span class="hint">Used when adding new materials or finished goods.</span></div>' +
         "</div>" +
-      "</div>" +
+      "</div>"
+    );
+  }
 
+  function appearanceTabHtml(s) {
+    return (
       '<div class="card section-card">' +
         '<h2 style="margin-bottom:4px;">Theme</h2>' +
         '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Pick whichever reads better for you. The colored section icons and accents adapt across all three.</p>' +
@@ -4257,8 +4713,12 @@ table.table a:hover { text-decoration: underline; }
           '<button class="chip' + (s.theme === "blue" ? " active" : "") + '" data-theme="blue">Blue (navy background)</button>' +
           '<button class="chip' + (s.theme === "light" ? " active" : "") + '" data-theme="light">Light (white background)</button>' +
         "</div>" +
-      "</div>" +
+      "</div>"
+    );
+  }
 
+  function dataTabHtml(s) {
+    return (
       '<div class="card section-card">' +
         '<h2 style="margin-bottom:4px;">Backup &amp; Restore</h2>' +
         '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Your data — items, BOMs, production orders, vendors, purchase orders, customers, invoices, credit notes, payments — lives in this browser only. Download a backup regularly, or before switching devices.</p>' +
@@ -4276,8 +4736,31 @@ table.table a:hover { text-decoration: underline; }
         '<h2 style="margin-bottom:4px;color:var(--danger);">Danger Zone</h2>' +
         '<p class="text-secondary" style="font-size:12px;margin-bottom:14px;">Permanently erase every item, production order, vendor, purchase order, customer, invoice, credit note, and payment.</p>' +
         '<button class="btn btn-danger btn-sm" id="resetBtn">' + MFGUI.ICONS.trash + " Reset all data</button>" +
-      "</div>" +
+      "</div>"
+    );
+  }
 
+  function tabContentHtml(s) {
+    switch (activeTab) {
+      case "profile": return profileTabHtml(s);
+      case "invoicing": return invoicingTabHtml(s);
+      case "production": return productionTabHtml(s);
+      case "appearance": return appearanceTabHtml(s);
+      case "data": return dataTabHtml(s);
+      default: return profileTabHtml(s);
+    }
+  }
+
+  function render() {
+    var data = MFG.getData();
+    var s = data.settings;
+
+    shell.contentEl.innerHTML =
+      '<div class="max-width-form flex-col" style="gap:20px;">' +
+      tabStripHtml() +
+      '<div class="flex-col" style="gap:20px;" id="settingsTabPanel" role="tabpanel">' +
+        tabContentHtml(s) +
+      "</div>" +
       '<p class="text-tertiary" style="text-align:center;font-size:11px;">Manufacturing &amp; Invoicing Manager · build ' + MFGUI.BUILD_DATE + "</p>" +
       "</div>";
 
@@ -4292,8 +4775,11 @@ table.table a:hover { text-decoration: underline; }
     // focus cleanly, which some Safari versions have been reported to
     // interfere with on address-shaped or number fields. A quiet toast on
     // every pause is intentional: confirmation you can actually see,
-    // instead of trusting a save happened.
+    // instead of trusting a save happened. Every element lookup below is
+    // null-guarded because only one tab's fields exist in the DOM at a
+    // time now — the other tabs' ids simply aren't there to find.
     function liveSave(el, patch, opts) {
+      if (!el) return;
       opts = opts || {};
       el.addEventListener("input", debounce(function (e) {
         save(patch(e.target.value));
@@ -4302,11 +4788,25 @@ table.table a:hover { text-decoration: underline; }
       }, 500));
     }
 
+    // Tab strip — switching tabs re-renders just the panel with the
+    // newly active tab's fields; nothing is lost by switching because
+    // every field already saved itself the moment it was typed.
+    document.querySelectorAll("[data-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-tab");
+        if (key === activeTab) return;
+        activeTab = key;
+        render();
+      });
+    });
+
     liveSave(document.getElementById("sName"), function (v) { return { businessName: v }; });
     liveSave(document.getElementById("sEmail"), function (v) { return { email: v.trim() }; });
     liveSave(document.getElementById("sPhone"), function (v) { return { phone: v.trim() }; });
     liveSave(document.getElementById("sWebsite"), function (v) { return { website: v.trim() }; });
     liveSave(document.getElementById("sAddress"), function (v) { return { address: v.trim() }; });
+    liveSave(document.getElementById("sTaxIdLabel"), function (v) { return { taxIdLabel: v.trim() || "Tax / VAT ID" }; });
+    liveSave(document.getElementById("sTaxId"), function (v) { return { taxId: v.trim() }; });
 
     liveSave(document.getElementById("sPrefix"), function (v) { return { invoicePrefix: v.toUpperCase().trim() || "INV" }; });
     liveSave(document.getElementById("sSeq"), function (v) { return { nextInvoiceSeq: Number(v) || 1 }; });
@@ -4336,7 +4836,8 @@ table.table a:hover { text-decoration: underline; }
       });
     }
 
-    document.getElementById("sCurrency").addEventListener("change", function (e) { save({ currency: e.target.value }); MFGUI.toast("Saved."); render(); });
+    var currencySel = document.getElementById("sCurrency");
+    if (currencySel) currencySel.addEventListener("change", function (e) { save({ currency: e.target.value }); MFGUI.toast("Saved."); render(); });
     liveSave(document.getElementById("sCustomSymbol"), function (v) { return { customSymbol: v.trim() }; });
     liveSave(document.getElementById("sThreshold"), function (v) { return { defaultReorderThreshold: Number(v) || 0 }; });
 
@@ -4350,61 +4851,71 @@ table.table a:hover { text-decoration: underline; }
 
     var logoBtn = document.getElementById("logoBtn");
     var logoInput = document.getElementById("logoInput");
-    logoBtn.addEventListener("click", function () { logoInput.click(); });
-    logoInput.addEventListener("change", function (e) {
-      var file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 1500000) { MFGUI.toast("Logo must be under 1.5MB.", "error"); return; }
-      var reader = new FileReader();
-      reader.onload = function () {
-        save({ logoDataUrl: reader.result });
-        MFGUI.toast("Logo updated.");
-        render();
-      };
-      reader.readAsDataURL(file);
-    });
+    if (logoBtn && logoInput) {
+      logoBtn.addEventListener("click", function () { logoInput.click(); });
+      logoInput.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 1500000) { MFGUI.toast("Logo must be under 1.5MB.", "error"); return; }
+        var reader = new FileReader();
+        reader.onload = function () {
+          save({ logoDataUrl: reader.result });
+          MFGUI.toast("Logo updated.");
+          render();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
     var logoRemoveBtn = document.getElementById("logoRemoveBtn");
     if (logoRemoveBtn) logoRemoveBtn.addEventListener("click", function () { save({ logoDataUrl: null }); render(); });
 
-    document.getElementById("exportBtn").addEventListener("click", function () {
-      var json = MFG.exportData();
-      var blob = new Blob([json], { type: "application/json" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "mfg-invoicing-backup-" + MFG.todayISO() + ".json";
-      a.click();
-      URL.revokeObjectURL(url);
-      MFGUI.toast("Backup downloaded.");
-    });
+    var exportBtn = document.getElementById("exportBtn");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", function () {
+        var json = MFG.exportData();
+        var blob = new Blob([json], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "mfg-invoicing-backup-" + MFG.todayISO() + ".json";
+        a.click();
+        URL.revokeObjectURL(url);
+        MFGUI.toast("Backup downloaded.");
+      });
+    }
 
-    document.getElementById("exportExcelBtn").addEventListener("click", function () {
-      exportAllData();
-    });
+    var exportExcelBtn = document.getElementById("exportExcelBtn");
+    if (exportExcelBtn) exportExcelBtn.addEventListener("click", function () { exportAllData(); });
 
     var importInput = document.getElementById("importInput");
-    document.getElementById("importBtn").addEventListener("click", function () { importInput.click(); });
-    importInput.addEventListener("change", function (e) {
-      var file = e.target.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function () {
-        var result = MFG.importData(String(reader.result));
-        if (result.ok) { MFGUI.toast("Data restored from backup."); render(); }
-        else MFGUI.toast(result.error || "Could not read that file.", "error");
-      };
-      reader.readAsText(file);
-      e.target.value = "";
-    });
-
-    document.getElementById("resetBtn").addEventListener("click", function () {
-      MFGUI.confirmDialog({
-        title: "Reset all data?",
-        description: "This permanently deletes every item, production order, vendor, purchase order, customer, invoice, credit note, and payment stored in this browser. This cannot be undone.",
-        confirmLabel: "Erase Everything",
-        onConfirm: function () { MFG.resetAllData(); MFGUI.toast("All data has been reset.", "info"); render(); },
+    var importBtn = document.getElementById("importBtn");
+    if (importBtn && importInput) {
+      importBtn.addEventListener("click", function () { importInput.click(); });
+      importInput.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var result = MFG.importData(String(reader.result));
+          if (result.ok) { MFGUI.toast("Data restored from backup."); render(); }
+          else MFGUI.toast(result.error || "Could not read that file.", "error");
+        };
+        reader.readAsText(file);
+        e.target.value = "";
       });
-    });
+    }
+
+    var resetBtn = document.getElementById("resetBtn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", function () {
+        MFGUI.confirmDialog({
+          title: "Reset all data?",
+          description: "This permanently deletes every item, production order, vendor, purchase order, customer, invoice, credit note, and payment stored in this browser. This cannot be undone.",
+          confirmLabel: "Erase Everything",
+          onConfirm: function () { MFG.resetAllData(); MFGUI.toast("All data has been reset.", "info"); render(); },
+        });
+      });
+    }
   }
 
   function exportAllData() {
@@ -4432,7 +4943,7 @@ table.table a:hover { text-decoration: underline; }
       return v ? v.name : "Deleted vendor";
     };
 
-    var cover = [{
+    var coverRow = {
       "Business Name": s.businessName || "",
       "Email": s.email || "",
       "Phone": s.phone || "",
@@ -4451,7 +4962,12 @@ table.table a:hover { text-decoration: underline; }
       "Payments": data.payments.length,
       "Vendor Payments": (data.vendorPayments || []).length,
       "Total Payable": MFG.totalPayable(),
-    }];
+    };
+    // Inserted by key name (rather than a literal property above) since
+    // the label itself is user-configurable — VAT No., GSTIN, EIN,
+    // whatever this business calls its own registration number.
+    coverRow[s.taxIdLabel || "Tax / VAT ID"] = s.taxId || "";
+    var cover = [coverRow];
 
     var items = data.items.map(function (it) {
       return {
@@ -4502,6 +5018,7 @@ table.table a:hover { text-decoration: underline; }
         "Email": v.email || "",
         "Phone": v.phone || "",
         "Payment Terms": v.paymentTerms || "",
+        "Tax / VAT / Registration No.": v.taxId || "",
         "Notes": v.notes || "",
         "Added": v.createdAt ? MFG.formatDate(v.createdAt.slice(0, 10)) : "",
       };
